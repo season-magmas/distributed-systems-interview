@@ -218,13 +218,15 @@ specific remaining limitation is documented with evidence.
 
 ## Step 6 — Add the GraphQL interface
 
-Agree on schema and library before coding. Suggested operations are workflows,
-run lookup, paginated run listing, and create/start/cancel mutations. Expose steps,
+Agreed: expose attempts and data state, keep separate create/start/cancel
+mutations, and use an unpaginated run list for simplicity. See
+`003-plan-part-6.md` for the proposed schema, polling, and resolver contracts.
+Operations include workflows, run lookup, run listing, and the three mutations. Expose steps,
 dependencies, attempts, physical outcomes, timestamps, errors, and data references
 so clients can distinguish execution success from data availability.
 
 Use the same application operations as HTTP. Decide nullability, error handling,
-pagination, and polling behavior (D3); subscriptions remain a separate option.
+unpaginated listing, and polling behavior (D3); subscriptions are out of scope.
 Test schema behavior, mutation races, and consistency with the HTTP record.
 
 Milestone: scientists can inspect the record and tools can start and follow runs

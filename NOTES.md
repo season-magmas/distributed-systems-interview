@@ -38,10 +38,10 @@ Implementation details within the specifications remain subject to review.
 
 ## 3. GraphQL interface
 
-- Schema (or link to its source): TODO
-- Queries and mutations: TODO; agreed that clients follow runs by polling.
-  Polling was chosen to keep the interface simple; subscriptions are unnecessary
-  for the initial scope.
+- Planned schema and resolver contract: `ai/003-plan-part-6.md`; source pending implementation.
+- Agreed: expose attempts and data state; separate create/start/cancel mutations;
+  unpaginated run listing and run lookup by ID. Clients poll for progress.
+  These choices keep the initial interface simple; subscriptions are out of scope.
 - Status, error, nullability, and data-reference semantics: TODO
 - Why this shape suits scientists and tools: TODO
 - Example operations: TODO
