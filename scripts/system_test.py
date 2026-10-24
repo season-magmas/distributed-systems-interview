@@ -117,7 +117,7 @@ class Suite:
         self.config.write_text(json.dumps(config, indent=2))
         (self.directory / 'config.json').write_text(json.dumps(config, indent=2))
         self.compose('up', '-d', 'postgres', 'nats', 'storage')
-        until(lambda: self.compose('exec', '-T', 'postgres', 'pg_isready', '-U', 'lab_admin', '-d', 'lab_default', check=False).returncode == 0, label='Postgres readiness')
+        until(lambda: self.compose('exec', '-T', 'postgres', 'pg_isready', '-h', '127.0.0.1', '-U', 'lab_admin', '-d', 'lab_default', check=False).returncode == 0, label='Postgres readiness')
         self.compose('exec', '-T', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'lab_admin', '-d', 'lab_default', data=(ROOT / 'db/init.sql').read_bytes())
         self.compose('up', '-d', '--no-build', 'executor', *DEVICES)
         def endpoint(service, port):

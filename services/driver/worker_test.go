@@ -112,3 +112,49 @@ func TestWorkerRestartRecoversCapturedBytes(t *testing.T) {
 		}
 	}
 }
+
+func TestWorkerRecoverBytesAfterAdapterRestart(t *testing.T) {
+	w, c := testWorker(t, false)
+	store := w.store.(*memoryStore)
+	store.failures = 100
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	_, err := w.run(ctx, c, func(r lab.Report) error {
+		if len(r.Executions) == 1 && r.Executions[0].Outcome == "completed" && r.Executions[0].DataState == lab.Pending {
+			cancel()
+		}
+		return nil
+	})
+	cancel()
+	if err == nil {
+		t.Fatal("expected interrupted adapter")
+	}
+	var persisted durableJob
+	if err = w.spool.Load(c.JobID, &persisted); err != nil || len(persisted.Bytes) == 0 {
+		t.Fatalf("captured bytes missing: %v", err)
+	}
+	store.failures = 0
+	restarted := worker{inst: w.inst, spool: w.spool, store: store}
+	recovered, err := restarted.run(context.Background(), c, func(lab.Report) error { return nil })
+	if err != nil || !recovered.Terminal || recovered.Executions[0].DataState != lab.Stored {
+		t.Fatalf("spool not recovered: %+v %v", recovered, err)
+	}
+	if len(w.inst.Status().Executions) != 1 {
+		t.Fatal("restart re-read the plate")
+	}
+}
+
+func TestWorkerLostBytesDoesNotReread(t *testing.T) {
+	w, c := testWorker(t, false)
+	outcome, err := w.inst.Run(context.Background(), instrument.Job{JobID: c.JobID, RunID: c.RunID, StepName: c.Step})
+	if err != nil || len(outcome.Data) == 0 {
+		t.Fatalf("instrument failed: %v", err)
+	}
+	// Simulate process death between the fixed instrument finishing and adapter capture.
+	r, err := w.run(context.Background(), c, func(lab.Report) error { return nil })
+	if err != nil || !r.Terminal || r.Executions[0].Outcome != "completed" || r.Executions[0].DataState != lab.Lost {
+		t.Fatalf("loss hidden: %+v %v", r, err)
+	}
+	if len(w.inst.Status().Executions) != 1 {
+		t.Fatal("data loss repeated measurement")
+	}
+}
