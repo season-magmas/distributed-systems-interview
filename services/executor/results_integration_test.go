@@ -177,6 +177,10 @@ func TestIntegrationDataLossRetainsPhysicalSuccess(t *testing.T) {
 	if evidence.Executions[0].Outcome != "completed" {
 		t.Fatal("physical success rewritten as failure")
 	}
+	response := graphRequest(&API{executor: e, workflowsPath: "../../config/workflows.yaml"}, `{run(id:"`+run.ID+`"){status steps{status attempts{executions{outcome measurement{state sha256}}}}}}`)
+	if strings.Contains(response.Body.String(), `"errors"`) || !strings.Contains(response.Body.String(), `"state":"LOST"`) || !strings.Contains(response.Body.String(), `"outcome":"COMPLETED"`) {
+		t.Fatalf("scientific data loss is not visible through GraphQL: %s", response.Body.String())
+	}
 }
 
 func TestIntegrationResultConsumerRetriesBindFailureUntilCancelled(t *testing.T) {

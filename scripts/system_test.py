@@ -262,7 +262,7 @@ class Suite:
     def exercise(self, name):
         if name == 'integration':
             for package in ['./services/common/lab', './services/driver', './services/executor']:
-                result = subprocess.run(['go', 'test', '-cover', package, '-run', 'Integration', '-count=1'], cwd=ROOT, env=self.integration_env, capture_output=True, timeout=180)
+                result = subprocess.run(['go', 'test', '-cover', package, '-count=1'], cwd=ROOT, env=self.integration_env, capture_output=True, timeout=180)
                 (self.directory / (package.rsplit('/', 1)[-1] + '.log')).write_bytes(result.stdout + result.stderr)
                 assert result.returncode == 0, result.stdout.decode() + result.stderr.decode()
             return
