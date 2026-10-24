@@ -75,15 +75,9 @@ retries. Preserve evidence rather than hiding these behind general reliability c
 
 ## AI record and handoff
 
-Include actual conversation exports under `ai/` or share links in `NOTES.md`, as
-the README allows. Planning prompt/response files alone are not necessarily the
-complete conversation. Do not fabricate a transcript from memory; if exports are
-not accessible, request them or a share link before declaring submission ready.
-Disclose any omissions requested for privacy.
+Include actual conversation are exports under `ai/` and have been captured in git as we progress.
 
 Commit the note, selected evidence, and conversation records. Verify that the final
 repository includes them and that referenced files/links are usable. Report the
 implementation commit, test outcomes, and remaining limitations to the user.
-The README asks for a user-owned GitHub repository and its link; publishing/sending
-that link is a separate action requiring an identified destination and authorization,
-not an implied consequence of this planning review.
+
