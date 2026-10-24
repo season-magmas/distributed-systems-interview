@@ -15,6 +15,7 @@ type API struct {
 
 func (a *API) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", a.graphHandler())
 	mux.HandleFunc("GET /health", a.health)
 	mux.HandleFunc("GET /workflows", a.listWorkflows)
 	mux.HandleFunc("GET /runs", a.listRuns)
