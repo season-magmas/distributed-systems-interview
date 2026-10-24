@@ -1,8 +1,12 @@
 # Implementation notes
 
-Status: template; implementation decisions and validation results are pending.
+Status: planning; initial decisions are recorded below. Implementation and
+validation results are pending.
 Replace the placeholders as work progresses. Record observations separately from
 design intentions and assumptions.
+
+## Plan
+Use Astra to help create a high level plan. Asking me question on how we should proceed. These are captured in ai/001-plan-response.md
 
 ## 1. Topology
 
@@ -19,10 +23,10 @@ design intentions and assumptions.
 
 | Decision | Choice and rationale | Alternatives considered | Tradeoffs |
 | --- | --- | --- | --- |
-| Messaging topology | TODO | TODO | TODO |
-| Physical execution and retries | TODO | TODO | TODO |
+| Messaging topology | Agreed: JetStream for durable messages and a Postgres outbox for outbound intent | Core NATS with persisted reconciliation | Durable delivery requires deduplication and recovery logic |
+| Physical execution and retries | Agreed: bounded exponential retries with recovery spanning the configured hang duration; proposed status-check delays are 0.5, 1, 2, 4, 8, 8, 8, 8 seconds (39.5 seconds total) | Stop after every failure | Recovery checks are separate from physical attempts; physical-attempt limit and retry eligibility remain open |
 | Persistence and recovery | TODO | TODO | TODO |
-| Cancellation and hangs | TODO | TODO | TODO |
+| Cancellation and hangs | Recovery must cover the default 30-second hang; proposed configurable deadline is 45 seconds, extended for longer hangs | Shorter retry windows exhaust before the instrument frees itself | Confirm idle status and terminal ledger evidence before any safe physical retry; cancellation policy remains open |
 | Data durability | TODO | TODO | TODO |
 
 Assumptions and interpretation of unclear requirements: TODO
@@ -30,7 +34,9 @@ Assumptions and interpretation of unclear requirements: TODO
 ## 3. GraphQL interface
 
 - Schema (or link to its source): TODO
-- Queries, mutations, and how clients follow runs: TODO
+- Queries and mutations: TODO; agreed that clients follow runs by polling.
+  Polling was chosen to keep the interface simple; subscriptions are unnecessary
+  for the initial scope.
 - Status, error, nullability, and data-reference semantics: TODO
 - Why this shape suits scientists and tools: TODO
 - Example operations: TODO
