@@ -200,3 +200,22 @@ func TestWorkerHashConflictPausesWithoutRereading(t *testing.T) {
 		t.Fatal("integrity conflict repeated physical work")
 	}
 }
+
+func TestWorkerRecoversVerifiedObjectWithoutAnotherWrite(t *testing.T) {
+	w, c := testWorker(t, false)
+	outcome, err := w.inst.Run(context.Background(), instrument.Job{JobID: c.JobID, RunID: c.RunID, StepName: c.Step})
+	if err != nil {
+		t.Fatal(err)
+	}
+	x := w.inst.Status().Executions[0]
+	key := fmt.Sprintf("runs/%s/jobs/%s/executions/%s/measurement.csv", c.RunID, c.JobID, x.ExecutionID)
+	store := w.store.(*memoryStore)
+	store.objects[key] = outcome.Data
+	store.failures = 100
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	r, err := w.run(ctx, c, func(lab.Report) error { return nil })
+	if err != nil || !r.Terminal || r.Executions[0].DataState != lab.Stored {
+		t.Fatalf("verified object could not recover lost upload response: %+v %v", r, err)
+	}
+}
