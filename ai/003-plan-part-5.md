@@ -29,7 +29,9 @@ order below before seeded random chaos. For each failure:
 4. Run that regression and the affected integration/scenario checks. Commit a
    coherent tested fix and update `NOTES.md` with evidence and remaining limits.
 5. Resume validation explicitly. Final completion requires a complete passing
-   routine suite and extended suite for the final implementation revision.
+   routine suite and extended suite for the final implementation revision, with
+   GraphQL checks added after part 6. Part 5's own gate is the explicitly selected
+   HTTP/ledger stage; it does not claim GraphQL coverage before that feature exists.
 
 Do not automatically rerun failed scenarios until they happen to pass. Retain
 failed attempts and distinguish nondeterministic faults from application bugs.
@@ -81,7 +83,10 @@ a confirmed hang on an incubator or plate reader.
 Cover real 30-second hangs and longer configured hangs with suitable recovery
 deadlines. Status polling must recover even when `Run` never sends an outcome.
 Status checks and busy responses consume no physical attempts. Verify backoff and
-attempt count remain intact across restart during a retry wait.
+attempt count remain intact across restart during a retry wait. Also delay
+initial dispatch beyond 45 seconds, then execute a real 30-second hang: its physical
+recovery window starts at physical execution, while the earlier dispatch timeout
+remains an uncertainty alert until evidence arrives.
 
 Kill drivers during execution and after capture. The instrument and adapter share
 a process, so startup ledger reconciliation reports interrupted execution as hung.
@@ -159,7 +164,9 @@ If the process is interrupted, record interruption and cleanup status rather tha
 inventing an assertion failure or successful completion.
 
 Part 5 is complete when all required component regressions, routine scenarios,
-extended scenarios (including both infrastructure restarts), relevant race checks,
-and final fault-free acceptance pass. Record precise evidence and actual runtime
+extended HTTP/ledger scenarios (including both infrastructure restarts), relevant
+race checks, and final fault-free acceptance pass. Record precise evidence and actual runtime
 in `NOTES.md`. Any missing prerequisite, unexecuted scenario, or known violation
 must remain explicitly outstanding; it cannot be hidden behind a passing subset.
+GraphQL validation follows in part 6; part 7 gates final submission on the complete
+suite with GraphQL enabled.

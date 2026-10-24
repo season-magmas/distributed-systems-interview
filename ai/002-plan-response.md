@@ -43,7 +43,7 @@ exclusive across all runs, not just within one workflow.
 | --- | --- | --- | --- | --- |
 | D1 | How should commands and results travel? | Durable JetStream delivery, plus a Postgres transactional outbox | Core NATS with persisted reconciliation reduces broker setup but needs explicit recovery for every lost request/reply | Agreed: JetStream and Postgres outbox |
 | D2 | When may physical work repeat? | Bounded retries with exponential delays, starting at 0.5 seconds and doubling to an 8-second cap, with a recovery window exceeding the configured hang duration; proposed eligibility is confirmed retryable failures | Stop after every failure for simplicity, or explicitly permit safe-device re-execution with a new attempt and full history | Agreed: three physical attempts; retry confirmed hangs on safe devices; see part 1 |
-| D3 | How should clients follow runs? | Read-only GraphQL queries with polling; existing HTTP API controls runs | Subscriptions improve responsiveness but add connection and replay semantics | Agreed: polling for simplicity |
+| D3 | How should clients follow runs? | GraphQL create/start/cancel mutations and queries with polling; HTTP remains supported | Subscriptions improve responsiveness but add connection and replay semantics | Agreed: polling for simplicity |
 | D4 | What should cancellation mean? | Stop authorizing new work, reconcile already dispatched work, preserve its actual outcomes, and settle cancellation after active work is accounted for | Immediate terminal cancellation is faster to report but can hide continuing physical work | Agreed; detailed in part 1 |
 | D5 | What deployment scope do we support? | One executor and one adapter per device initially, with concurrent runs and durable recovery | Multiple active instances require ownership/fencing design, especially around physical execution | Agreed: single executor and driver per device; durable local spool |
 | D6 | How should driver death be injected? | Extend `chaos.sh kill` to the existing driver allowlist, preserving executor behavior | A companion helper avoids editing the supplied script but splits fault injection across tools | Agreed: extend chaos.sh; isolated test resources; routine plus extended suites |
@@ -71,8 +71,9 @@ Agree on a small state-transition table before selecting implementation details:
 - Use bounded exponential recovery delays of 0.5, 1, 2, 4, 8, 8, 8, 8 seconds.
   These allow eight checks over 39.5 seconds, covering the default 30-second hang
   with margin.
-- Make the recovery deadline configurable and require it to exceed the configured
-  `HANG_DURATION` with margin (proposed default: 45 seconds for a 30-second hang).
+- Separate the authorization-time dispatch deadline from physical recovery. Derive
+  physical recovery from ledger start plus at least
+  `max(STEP_DURATION, HANG_DURATION) + 15 seconds` (45 seconds by default).
   For longer configured hangs, extend the capped-delay schedule and deadline.
   Bound status-call durations within that deadline as well.
 - Retry physical execution only after status confirms the instrument is idle,
@@ -218,9 +219,9 @@ specific remaining limitation is documented with evidence.
 
 ## Step 6 — Add the GraphQL interface
 
-Agreed: expose attempts and data state through read-only GraphQL, using an
-unpaginated run list for simplicity. Create/start/cancel remain on the existing
-HTTP API; this supersedes the earlier GraphQL mutation proposal. See
+Agreed after review: expose attempts and data state, an unpaginated run list,
+and simple create/start/cancel mutations to meet the README. These share the
+existing HTTP application operations; the earlier read-only decision is superseded. See
 `003-plan-part-6.md` for the proposed schema, polling, and resolver contracts.
 GraphQL queries include workflows, run lookup, and run listing. Expose steps,
 dependencies, attempts, physical outcomes, timestamps, errors, and data references
@@ -228,12 +229,16 @@ so clients can distinguish execution success from data availability.
 
 Read the same persisted application record as HTTP. Decide nullability, error handling,
 unpaginated listing, and polling behavior (D3); subscriptions are out of scope.
-Test schema behavior, rejection of mutations, and consistency with HTTP actions.
+Test schema behavior, mutations, and consistency with HTTP actions.
 
 Milestone: scientists can inspect the record and tools can follow runs through
-`/graphql` on the existing executor port, using HTTP to create/start/cancel runs.
+`/graphql` on the existing executor port, using either GraphQL or HTTP to
+create/start/cancel runs.
 
 ## Step 7 — Finish evidence and submission notes
+
+See `003-plan-part-7.md` for the required README topics, final validation gate,
+actual time/feedback, AI records, and explicit data-loss limitations.
 
 Run the appropriate Go suite, coverage checks, concurrency race checks, acceptance,
 and automated fault scenarios. Record actual commands and outcomes in `NOTES.md`,
@@ -255,7 +260,8 @@ User decisions recorded on 2026-10-24:
 - D2: use bounded instrument retries with exponential delay. The user clarified
   that recovery must outlast the default 30-second hang. Extend the proposed
   recovery checks to 0.5, 1, 2, 4, 8, 8, 8, 8 seconds (39.5 seconds total), with
-  a configurable deadline proposed at 45 seconds and adjusted for longer hangs.
+  a physical deadline derived from ledger start (45 seconds by default), plus a
+  separate dispatch deadline; see reviewed parts 1 and 2.
   Recovery checks do not count as physical attempts. Part 1 confirms three total
   physical attempts and retries for confirmed hangs on safe devices. Lost
   measurement bytes cause explicit step failure without automatic re-reading.

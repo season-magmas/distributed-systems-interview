@@ -99,8 +99,13 @@ after delays of 0.5, 1, 2, 4, 8, 8, 8, 8 seconds. The last scheduled check is
 39.5 seconds after observation starts, beyond the default 30-second hang.
 Continue at the cap within the configured deadline, including a final bounded
 check if needed. Proposed recovery timeout is 45 seconds, measured from the
-start of an unresolved attempt's recovery episode; restarts do not reset it.
-For longer `HANG_DURATION`, configure a timeout with at least 15 seconds of margin.
+physical start recorded in the ledger; persist that deadline and do not reset it
+on restart. Use `max(STEP_DURATION, HANG_DURATION) + 15 seconds` as the minimum
+physical recovery timeout (45 seconds with the supplied defaults). Delayed dispatch
+must not consume this physical execution window. Separately, persist a dispatch
+deadline at authorization (proposed 45 seconds) to detect missing start evidence.
+A dispatch deadline is an alert/pause boundary, not an expiry or permission to
+replace a command that may still execute. Part 2 defines the two watchdogs.
 Bound individual status operations by the remaining deadline.
 
 When an attempt is known to be actively executing, continue observing it without
@@ -127,6 +132,12 @@ result or positive evidence of suppression arrives; an empty current ledger alon
 does not prove that a queued command can no longer arrive. Part 2 must preserve
 this rule across outbox publication and broker redelivery.
 
+If cancellation or another step's failure arrives during retry backoff, remove
+retry eligibility and settle this already-executed step as failed with its last
+physical outcome and an explicit retry-suppressed reason. It has no outstanding
+command to wait for. Only never-executed steps with no committed dispatch become
+cancelled. Apply this rule atomically with run intent and retry authorization.
+
 Never mark active steps cancelled just because the user requested cancellation.
 Keep their actual success, failure, or data-loss outcome. Cancel undispatched
 steps and suppress retries. Wait for outstanding commands, physical work, and
@@ -145,7 +156,11 @@ finish time represents logical settlement, not necessarily the last physical fin
 Persist received bytes before relying on them for a result. Upload retries reuse
 the same bytes and stable object identity; they do not re-run the instrument.
 Associate `data_ref`, execution ID, job ID, and SHA-256 so the record identifies
-the exact measurement. A temporary unavailable store is not proof of data loss.
+the exact measurement. A temporarily unavailable store is not proof of data loss.
+An integrity conflict or missing/corrupt evidence that cannot be reconciled keeps
+the step running with an explicit error and dispatch paused; it is not proof that
+the physical execution failed. An established loss of the actual measurement is
+the distinct terminal data-loss case below.
 
 If the ledger says a read completed, first reconcile the matching durable spool
 and object. Missing bytes in all recoverable locations establish data loss only
@@ -160,7 +175,8 @@ as `measurement_data_lost`. Do not fabricate data or silently select a new read.
   and status checks consume none of that budget.
 - Exercise a 30-second hang and a longer configured hang. Verify no execution
   overlap, safe-device retry after release, and no liquid-handler repeat.
-- Test persistent attempt limits and retry deadlines across process restarts.
+- Test persistent attempt limits and both dispatch/physical deadlines across
+  process restarts, including dispatch delayed longer than a hang duration.
 - Test cancellation before dispatch, after outbox commit, during execution,
   during backoff, and during upload, including duplicate requests.
 - Test successful measurement with delayed upload separately from irrecoverable

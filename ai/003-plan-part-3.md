@@ -45,6 +45,12 @@ each scenario receives fresh data volumes so prior ledgers or runs cannot mask a
 failure. Run fault scenarios serially initially to avoid resource contention and
 make diagnosis easier.
 
+Bootstrap the harness lifecycle and named scenarios alongside part 4. Its initial
+gate is isolation, cleanup, and the happy path; full fault coverage is the part 5
+gate. Before part 6, run explicit HTTP/ledger-only stages and mark GraphQL coverage
+pending. After GraphQL is implemented, the final suite includes GraphQL assertions
+and must fail if that endpoint is unavailable. Do not silently auto-skip checks.
+
 ## Isolation and lifecycle
 
 1. Verify Docker/Compose, Go, Bash, curl, and jq are available. Record versions,
@@ -146,7 +152,7 @@ their actual ledger outcomes. Use 100% fault settings for exhaustion cases.
 | Unsafe hang | Liquid handler at 100% hang | One execution, eventually failed after known terminal hang |
 | Concurrent runs | At least two workflows sharing devices | No overlapping physical intervals on the same device; distinct devices overlap |
 | Cancellation | Before authorization, during physical work, during retry backoff | No new authorization after intent; actual dispatched outcomes retained |
-| Random chaos | `chaos.sh random --seed 7 --for 60` with continuous workflow submission | Work overlaps the fault window; after recovery, all selected jobs satisfy record invariants |
+| Random chaos | `chaos.sh random --seed 7 --for 60` with continuous workflow submission | Work overlaps the fault window; after submission stops and faults recover, all scenario runs settle within a backlog-aware deadline and satisfy record invariants |
 
 Run a final fault-free acceptance case after the fault scenarios. Restore settings
 explicitly even though scenarios use isolated data, and verify those settings.
@@ -174,6 +180,11 @@ Include routine coverage, then add:
 - Capacity/backpressure, corrupt spool records, conflicting hashes, and permanently
   unavailable evidence, with expected explicit errors and safe dispatch pause.
 
+Use finite bounded load for random tests: keep at least one run active during the
+fault window, cap simultaneous runs, stop submitting when injection ends, and drain
+all created runs. Record counts and budget enough time for queued work; an arbitrary
+subset of completed runs cannot stand in for the scenario's entire ledger.
+
 Use controlled component/integration tests for instruction-sized windows: loss of
 bytes before durable capture, crash after broker acceptance before local update,
 and crash after Postgres commit before result acknowledgement. Keep those tests
@@ -197,7 +208,10 @@ Required invariants across both suites:
 - No device has overlapping physical execution intervals, across all test runs.
 - Dependency executions begin only after prerequisites have logically succeeded,
   including any required data persistence. Track public observations as well as
-  ledger times to test data-dependent ordering.
+  ledger times to test data-dependent ordering. Polling alone cannot prove that
+  every transient state was valid: use transaction/component tests and a persisted
+  authorization trace for the data-readiness boundary, retaining the ledger as the
+  independent physical-time oracle.
 - Every published data reference names accessible bytes matching the selected
   execution's hash after storage recovery. No successful read silently loses data.
 - Unknown work remains running with an explicit error, without speculative retries
@@ -226,4 +240,8 @@ The harness is complete when it can demonstrate a failing invariant against an
 intentionally broken test fixture, pass the implemented recovery scenarios, and
 clean its resources on success, failure, and interruption. Before features exist,
 unmet scenarios are explicit failures or documented pending coverage, never passes.
-Part 4 will specify the first implementation slice and its acceptance gate.
+The routine suite must exercise both provided workflows: run the seven-check
+acceptance script for the default workflow and `Triple Assay`, with faults zero.
+The second workflow includes a data-producing dependency and multiple reads.
+
+Part 4 specifies the first implementation slice and its acceptance gate.

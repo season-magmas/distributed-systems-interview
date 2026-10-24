@@ -15,7 +15,7 @@ application changes, database resets, or runtime tests have been performed here.
 
 The milestones below divide those groups into reviewable commits. Combine or
 split a milestone only when doing so keeps builds working and changes coherent.
-Planning remains separate from implementation until the remaining parts are reviewed.
+This review updates the specification only; implementation starts as a separate task.
 
 ## Scope and completion gate
 
@@ -48,6 +48,13 @@ Passing this gate alone is not evidence of chaos resilience.
   failures. Avoid a generic service framework or mock interfaces for every type.
 - Use named durations and limits, explicit errors, small functions, and meaningful
   behavior tests, following `AGENTS.md`.
+
+## Harness bootstrap
+
+Build part 3's isolated setup, diagnostics, and cleanup skeleton before using real
+service integration tests. Add named scenarios as features land; do not require
+the complete chaos suite before the execution path exists. Run external-service
+integration tests explicitly, keeping ordinary unit tests usable without Docker.
 
 ## Commit 1 — Protocol and pure transition rules
 
@@ -140,8 +147,12 @@ downloaded content matches its independent ledger hash.
 
 Connect `StartRun` to durable scheduling, keeping repeated starts idempotent and
 terminal runs terminal. Reuse `NextSteps` for within-run eligibility and enforce
-cross-run device reservations in Postgres. Wake scheduling after relevant state
-changes, with a bounded periodic reconciliation pass so missed wakeups cannot
+cross-run device reservations in Postgres. Retry-waiting logical steps remain
+`running` publicly, but the existing `NextSteps` selects only pending steps.
+Construct an internal scheduling projection that marks a due retry eligible only
+when its prior execution is terminal and no dispatch remains outstanding. Do not
+reset the public step to pending or count backoff as physical device occupancy.
+Wake scheduling after relevant state changes, with a bounded periodic reconciliation pass so missed wakeups cannot
 stall a run forever.
 
 Implement `CancelRun` as persisted intent: prevent new authorization, suppress
@@ -158,7 +169,9 @@ state; startup dependency handling is exercised further in part 5.
 Tests cover simultaneous starts, shared-device contention, separate-device overlap,
 run/step agreement, cancellation races, and repeated lifecycle operations. Test
 that all physical executions for a run remain accounted for through HTTP views
-and retained attempt evidence.
+and retained attempt evidence. Use a consistent snapshot for HTTP `GetRun` and
+`ListRuns` as well as GraphQL: current separate reads must not combine a completed
+run with steps from a different committed state.
 
 Gate: full Go tests and applicable race checks pass; multiple workflows progress
 without overlapping physical work on one device.
@@ -168,7 +181,9 @@ without overlapping physical work on one device.
 Use the isolated harness from part 3 to start a fresh fault-free stack and run
 `scripts/acceptance.sh` unchanged. Verify all seven checks, especially physical
 parallelism and stored measurement hashes. Also run a two-run contention case and
-basic cancellation cases; retain artifacts for failures.
+basic cancellation cases; retain artifacts for failures. Run acceptance for both
+provided workflows, including `Triple Assay` with multiple plate-reader steps.
+GraphQL-specific checks remain explicitly pending until part 6.
 
 Run coverage inspection and the applicable unit/integration suite. Close meaningful
 coverage gaps around authorization, result application, and data handling rather

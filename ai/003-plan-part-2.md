@@ -55,7 +55,7 @@ association before acting. Treat payload values as data, never filesystem paths.
 
 | Message | Fields and semantics |
 | --- | --- |
-| Execute command | Schema version, command ID, run ID, step name, device ID, job ID, attempt number, creation time, recovery deadline |
+| Execute command | Schema version, command ID, run ID, step name, device ID, job ID, attempt number, creation time, dispatch deadline, configured physical recovery timeout |
 | Driver report | Schema version, report ID, job identity, device ID, monotonic job revision, observed time, physical execution evidence, data state, recovery error |
 
 Physical evidence includes execution ID, outcome, physical timestamps, error,
@@ -65,13 +65,17 @@ and verified hash. Unknown evidence stays absent rather than becoming success.
 
 A report is a cumulative snapshot for its job, not a delta requiring every prior
 message. Publish after physical start, terminal outcome, data-state changes, and
-recovery-deadline expiry. Retain all matching executions if an unexpected duplicate
-is discovered and flag the violation. Never hide one by selecting a convenient row.
+physical recovery-deadline expiry. Retain all matching executions if an unexpected
+duplicate is discovered and flag the violation. Never hide one by selecting a convenient row.
 
 Persist a report's ID, revision, and exact payload before publication. Republishing
 uses the same ID and content. The executor ignores lower/equal applied revisions
 for state changes, while retaining evidence of conflicts. A conflicting payload
 for an existing ID is a protocol error, not a duplicate to silently accept.
+Validate cumulative snapshots against persisted evidence: a larger revision cannot
+erase an execution, change immutable identity, or revert a known terminal physical
+outcome. Conflicts pause affected work with an explicit error; monotonic revision
+numbers alone are not sufficient evidence of a valid transition.
 
 ## Streams and consumers
 
@@ -82,7 +86,13 @@ executor consumer for results. Use explicit acknowledgements and queue-style
 retention of unacknowledged messages; exact client configuration will be verified
 against the pinned NATS version during implementation.
 
-Provision all consumers before accepting runs. Do not expire unprocessed commands
+The executor provisions the result consumer and device-filtered command consumers
+for the configured supported devices before authorizing work. Workflow reloads
+must validate/provision any newly supported device before its first dispatch;
+unknown device IDs fail validation rather than creating unconsumed commands.
+A driver may start before provisioning and wait with backoff without accepting
+physical work. Define one stream configuration shared by provisioning and tests.
+Do not expire unprocessed commands
 or results by age. Set explicit capacity limits and reject new publication when
 full rather than evicting unprocessed work. Publisher failures remain durable
 pending intent and apply backpressure. Initial deployment uses the single supplied
@@ -90,8 +100,12 @@ NATS server; replicated broker/high-availability guarantees are out of scope.
 
 Proposed acknowledgement wait is 30 seconds with progress notifications every
 10 seconds while a command is active. A missed notification may cause redelivery;
-the job identity and driver state must still prevent re-execution. Do not use a
-small delivery-count limit that abandons commands during a long outage or hang.
+the job identity and driver state must still prevent re-execution. Keep transport
+heartbeats/publication off the serial physical-execution wait so
+an active job cannot prevent acknowledgement progress. Redelivered commands attach
+to the existing job or replay its report; they do not enqueue another `Run` call.
+Do not use a small delivery-count limit that abandons commands during a long
+outage or hang.
 
 | Boundary | Acknowledge only after |
 | --- | --- |
@@ -112,10 +126,17 @@ Extend the schema without changing HTTP models or public Go signatures:
 - Runs: cancellation intent and whether new scheduling is paused.
 - Steps: current attempt/job, internal phase, and explicit unresolved/data errors.
 - Attempts: immutable identity, ordinal, physical evidence, data state, applied
-  report revision, retry due time, and recovery deadline.
+  report revision, retry due time, dispatch deadline, and nullable physical
+  recovery deadline.
 - Device reservations: at most one outstanding authorized job per device.
 - Outbox: unique command ID, immutable payload, due time, publication state.
 - Inbox/report records: unique report ID, payload identity, and processing outcome.
+
+Persist execution evidence as a child collection keyed by execution ID; do not
+store only one outcome or hash on an attempt. Each execution owns its measurement
+state and object reference. The logical step explicitly selects the successful
+execution used for completion. This supports part 6's history without discarding
+unexpected duplicates.
 
 Use uniqueness constraints for job ID, command ID, and `(run, step, attempt)`.
 Apply transitions under transactions with a consistent lock order. One executor
@@ -142,6 +163,12 @@ On startup, recover reservations, pending outbox records, retry deadlines, and
 nonterminal attempts before scheduling new work. Do not infer failure from absence
 of a result. Handle result identity/revision checks before updating any step.
 
+Terminal reports release a reservation only when they match its job ID and carry
+known terminal physical evidence plus final data disposition. Physical retries
+are authorized only by the executor; the driver never allocates another job ID.
+A terminal report can arrive before the driver's command acknowledgement: the
+next command may queue, but the serial adapter cannot execute it concurrently.
+
 ## Driver execution and local spool
 
 Give each driver its own persistent Compose volume mounted at `/spool`, separate
@@ -163,12 +190,19 @@ Processing sequence:
 2. Under serial device ownership, inspect spool and instrument status. If this job
    already executed, reconcile it. If evidence is intact, the job is absent, and
    the device is idle, it may start. Conflicting/corrupt evidence pauses the job.
-3. Call `Run` once for the authorized attempt. Handle busy without consuming a
-   physical attempt. Observe `Status()` concurrently with the wait so a hang can
+3. Call `Run` only when no physical execution exists for the authorized attempt.
+   An explicit `ErrBusy` or confirmed no-execution ledger-write error may be retried
+   with the same job ID after reconciliation, without incrementing the attempt.
+   Unknown return errors never justify repeating physical work. Observe `Status()`
+   concurrently with the wait so a hang can
    settle even though `Run` never returns an outcome.
 4. Prefer the returned outcome for capturing measurement bytes; ledger success
    alone must not race ahead and declare data loss while that outcome is still
-   being delivered. Persist captured bytes immediately.
+   being delivered. Persist captured bytes immediately. Keep the outcome receiver
+   alive through normal execution; a recovery timeout must not cancel the sole
+   receiver and discard a later measurement. Stop a hung wait only after terminal
+   hung evidence. Process shutdown retains the documented pre-spool data-loss risk.
+   Fail closed on observed spool errors; never discard bytes to accept another job.
 5. Persist and publish cumulative reports. If the device has physically completed
    a read, reconcile spool/object data before declaring the logical result final.
 6. Keep the terminal report available for command redelivery. Do not call `Run`
@@ -182,7 +216,8 @@ This is a bounded exercise deployment, not an indefinite retention solution.
 ## Object persistence
 
 Use a stable key derived from validated generated IDs, for example
-`runs/<run-id>/jobs/<job-id>/measurement.csv`. Capture bytes and their hash first.
+`runs/<run-id>/jobs/<job-id>/executions/<execution-id>/measurement.csv`.
+Capture bytes and their hash first.
 Retry upload with the same key and bytes. Verify downloaded bytes against the
 ledger hash before publishing stored data and its reference. Never overwrite an
 existing conflicting object silently; stop with a data-integrity error.
@@ -196,11 +231,27 @@ running with a data-pending error; it does not authorize another plate read.
 ## Reconciliation, deadlines, and cancellation
 
 Use part 1's capped exponential observation schedule and configurable recovery
-deadline. Persist deadlines; do not extend them on restart. After the deadline,
+deadlines. The executor persists an authorization-time dispatch deadline and
+independently detects missing start evidence even if the driver cannot publish.
+The driver derives the physical deadline from the ledger's physical start and the
+configured timeout; persist it locally and include it in reports so the executor
+can watch it too. Recover it from the same start timestamp after a crash, never
+from reconnect time. A pre-start GraphQL physical deadline is null.
+
+The executor watchdog must mark overdue work unresolved when no report arrives;
+it cannot depend on receiving a driver's timeout event over a broken connection.
+Clear only the error resolved by new evidence, and re-evaluate the other deadlines.
+Late start evidence does not reset its physical start or authorize a replacement.
+Persist deadlines; do not extend them on restart. After the deadline,
 keep unresolved work running, pause new work for its run/device, and continue
 bounded observation/publication attempts every 8 seconds while the service runs.
 Clear the recovery error and resume policy evaluation only when evidence resolves
-the uncertainty. Unrelated runs on other devices can continue.
+the uncertainty. A published old terminal report is still replayed and applied;
+its lower revision cannot clear a distinct unresolved integrity conflict. Matching
+terminal evidence can settle a timeout even if its observation timestamp predates
+the executor's locally generated timeout. Local watchdog state is separate from
+the driver's monotonically increasing report revision. Unrelated runs on other
+devices can continue.
 
 Already committed commands remain authorized after cancellation, even if their
 publication was delayed. Publish and settle them normally. Do not delete outbox
@@ -234,7 +285,11 @@ would require its own safety contract.
 Process restarts with intact volumes are covered. Lost/corrupt disk, deliberate
 ledger modification, volume deletion, broker-volume loss, and multiple active
 owners are not promised to recover automatically. Corruption should fail closed
-where detected. The fixed instrument cannot atomically hand off measured bytes
+where detected. The fixed instrument logs terminal-ledger write failures and may
+retain newer evidence only in memory; after restart the ledger can therefore be
+incomplete. Preserve any durably spooled outcome, flag contradictory evidence,
+and do not claim disk-failure tolerance beyond the instrument interface.
+The fixed instrument cannot atomically hand off measured bytes
 to the spool, so that data-loss window remains an explicit limitation.
 
 ## Required verification and later specifications

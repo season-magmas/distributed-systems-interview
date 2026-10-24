@@ -9,6 +9,7 @@ design intentions and assumptions.
 * Use Astra to help create a high level plan. Asking me question on how we should proceed. These are captured in ai/002-plan-response.md.
 * Each part was then planned in detailed using a simple Q/A process. These are captured in ai/003-plan-part-X.md.
   * Rejected suggested use of graphql mutations as we already have existing HTTP methods and want to keep things as simple as possible.
+    * This was then reverted on plan review
 
 ## 1. Topology
 
@@ -40,9 +41,10 @@ Implementation details within the specifications remain subject to review.
 ## 3. GraphQL interface
 
 - Planned schema and resolver contract: `ai/003-plan-part-6.md`; source pending implementation.
-- Agreed: read-only GraphQL exposes attempts and data state, unpaginated run
-  listing, and run lookup by ID. Clients poll for progress and use the existing
-  HTTP API to create/start/cancel runs. This supersedes the mutation proposal.
+- Agreed after review: GraphQL exposes attempts/data state, unpaginated run
+  listing, run lookup, and separate create/start/cancel mutations sharing the HTTP
+  application operations. Clients poll for progress. This supersedes read-only
+  GraphQL and satisfies the README requirement for tools to start runs through it.
   These choices keep the initial interface simple; subscriptions are out of scope.
 - Status, error, nullability, and data-reference semantics: TODO
 - Why this shape suits scientists and tools: TODO
@@ -75,6 +77,16 @@ the recovery phases and completion gate.
 Record environment details and restored fault settings here: TODO
 
 ## 5. Limits and unproven behavior
+
+Plan review: parts 1–6 now distinguish dispatch and physical recovery deadlines,
+settle cancelled retry waits, preserve per-execution evidence, and stage validation
+around feature availability. Part 7 specifies all required submission evidence.
+These are design corrections; no runtime tests have been run for this review.
+
+The fixed instrument's measurement-to-spool handoff is not atomic. A crash before
+capture can irrecoverably lose bytes despite a successful physical read. The plan
+reports this explicitly; it does not guarantee lossless preservation of every read.
+
 
 - Known cases where the record may not be true: TODO
 - Behavior not yet tested or proven: TODO
