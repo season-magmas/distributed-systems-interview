@@ -28,10 +28,11 @@ design intentions and assumptions.
 | Physical execution and retries | Agreed: bounded exponential retries with recovery spanning the configured hang duration; proposed status-check delays are 0.5, 1, 2, 4, 8, 8, 8, 8 seconds (39.5 seconds total) | Stop after every failure | Three physical attempts total; recovery checks consume none; retry confirmed hangs only on safe devices |
 | Persistence and recovery | Agreed: one executor, one driver per device, and durable local driver spool; unresolved work stays running with an explicit recovery error | Active replicas or volatile driver buffers | Process restart recovery depends on intact volumes; see ai/003-plan-part-2.md |
 | Cancellation and hangs | Recovery must cover the default 30-second hang; proposed configurable deadline is 45 seconds, extended for longer hangs | Shorter retry windows exhaust before the instrument frees itself | Confirm idle status and terminal ledger evidence before any safe physical retry; cancellation stops new authorization and settles already dispatched work, preserving actual outcomes |
+| Schema and delivery | Agreed: recreate disposable databases and implement in small tested commits | Versioned upgrades; one large implementation commit | Existing disposable records are not preserved; see ai/003-plan-part-4.md |
 | Data durability | Persist captured bytes locally, then verify stored measurement; irrecoverably lost bytes fail the step without automatic re-read | Re-read after data loss | The fixed instrument cannot guarantee durable handoff of every measurement |
 
 Detailed planning contracts: `ai/003-plan-part-1.md` and
-`ai/003-plan-part-2.md`, and `ai/003-plan-part-3.md`. These describe planned
+`ai/003-plan-part-2.md`, `ai/003-plan-part-3.md`, and `ai/003-plan-part-4.md`. These describe planned
 behavior, not tested guarantees.
 Implementation details within the specifications remain subject to review.
 

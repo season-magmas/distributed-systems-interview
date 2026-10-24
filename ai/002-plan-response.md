@@ -190,6 +190,10 @@ and answer to D6. Then implement failing baseline scenarios alongside each featu
 
 ## Step 4 — Implement the smallest complete execution path
 
+Agreed: recreate disposable databases for schema changes and implement in small
+tested commits. See `003-plan-part-4.md` for the commit sequence and acceptance
+gates; versioned upgrade migrations are outside this exercise scope.
+
 After the preceding design review, implement persistence and message contracts,
 executor scheduling/outbox, serial driver handling, result application, and data
 upload. Include meaningful unit and integration tests with each component.
