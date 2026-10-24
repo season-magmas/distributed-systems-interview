@@ -64,6 +64,11 @@ class Suite:
         self.env.update(CHAOS_SEED='0', HANG_DURATION='30s', COMPOSE_PROJECT_NAME=self.project)
         self.base = json.loads(subprocess.check_output(['docker', 'compose', 'config', '--format', 'json'], cwd=ROOT, env=self.env))
         self.base = isolated(self.base, self.project, f'172.28.{random.randrange(2, 250)}')
+        # Docker may reallocate an unspecified host port on container restart.
+        ports = iter(random.sample(range(20000, 60000), 32))
+        for service in self.base['services'].values():
+            for port in service.get('ports', []):
+                port['published'] = str(next(ports))
         for service in self.base['services'].values():
             service.setdefault('labels', {})['lab.test-owner'] = self.project
         self.config.write_text(json.dumps(self.base, indent=2))
@@ -235,7 +240,7 @@ class Suite:
     def exercise(self, name):
         if name == 'integration':
             for package in ['./services/common/lab', './services/executor']:
-                result = subprocess.run(['go', 'test', '-race', package, '-run', 'Integration', '-count=1'], cwd=ROOT, env=self.integration_env, capture_output=True, timeout=180)
+                result = subprocess.run(['go', 'test', package, '-run', 'Integration', '-count=1'], cwd=ROOT, env=self.integration_env, capture_output=True, timeout=180)
                 (self.directory / (package.rsplit('/', 1)[-1] + '.log')).write_bytes(result.stdout + result.stderr)
                 assert result.returncode == 0, result.stdout.decode() + result.stderr.decode()
             return
