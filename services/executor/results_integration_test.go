@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/automata-tech/distributed-systems-interview/services/common/lab"
 	"testing"
@@ -71,5 +72,30 @@ func TestIntegrationRejectUnprovenSuccess(t *testing.T) {
 	got, _ := e.GetRun(ctx, run.ID)
 	if got.Status == RunCompleted {
 		t.Fatal("completed a read without a hash or data reference")
+	}
+}
+
+func TestIntegrationOutboxFailureRollsBackAuthorization(t *testing.T) {
+	e, ctx := integrationExecutor(t)
+	_, err := e.db.ExecContext(ctx, `CREATE OR REPLACE FUNCTION reject_test_outbox() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'injected outbox failure'; END $$; CREATE TRIGGER reject_test_outbox BEFORE INSERT ON outbox FOR EACH ROW EXECUTE FUNCTION reject_test_outbox()`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer e.db.ExecContext(context.Background(), "DROP TRIGGER IF EXISTS reject_test_outbox ON outbox; DROP FUNCTION IF EXISTS reject_test_outbox()")
+	run, err := e.CreateRun(ctx, "atomic", []StepTemplate{{Name: "atomic", DeviceID: "incubator-1"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = e.StartRun(ctx, run.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err = e.schedule(ctx); err == nil {
+		t.Fatal("injected outbox failure was ignored")
+	}
+	for _, query := range []string{"SELECT count(*) FROM attempts WHERE run_id=$1", "SELECT count(*) FROM outbox WHERE run_id=$1", "SELECT count(*) FROM reservations JOIN attempts USING(job_id) WHERE run_id=$1"} {
+		var n int
+		if err = e.db.QueryRowContext(ctx, query, run.ID).Scan(&n); err != nil || n != 0 {
+			t.Fatalf("partially committed authorization: %d %v", n, err)
+		}
 	}
 }

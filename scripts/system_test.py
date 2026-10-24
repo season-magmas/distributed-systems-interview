@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 import random
+import socket
 import subprocess
 import sys
 import threading
@@ -128,7 +129,13 @@ class Suite:
             def address(service, port):
                 value = self.compose('port', service, str(port)).stdout.decode().strip()
                 return value.rsplit(':', 1)[1]
-            host = self.host if self.host != 'localhost' else 'host.docker.internal'
+            host = self.host
+            if host == 'localhost':
+                try:
+                    with socket.create_connection((host, int(address('postgres', 5432))), timeout=1):
+                        pass
+                except OSError:
+                    host = 'host.docker.internal'
             self.integration_env = dict(self.env, LAB_TEST_DATABASE=f'postgres://lab_admin:lab_password@{host}:{address("postgres", 5432)}/executor_db?sslmode=disable', LAB_TEST_NATS=f'nats://{host}:{address("nats", 4222)}')
             return
         self.compose('up', '-d', '--no-build', 'executor', *DEVICES)
