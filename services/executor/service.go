@@ -5,163 +5,242 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"sync"
+	"time"
 
-	"github.com/lib/pq"
-	"github.com/nats-io/nats.go"
-
+	"github.com/automata-tech/distributed-systems-interview/services/common/lab"
 	"github.com/automata-tech/distributed-systems-interview/services/common/storage"
+	"github.com/nats-io/nats.go"
 )
 
-// ErrRunNotFound is returned when there is no run with that id. The API turns
-// it into a 404.
 var ErrRunNotFound = errors.New("run not found")
-
-// ErrNotImplemented is turned into a 501 by the API.
 var ErrNotImplemented = errors.New("not implemented")
 
-// Executor is the executor side of the work. This file is yours.
-//
-// The API calls the methods below and reports what they return. Keep their
-// names and signatures, and keep RunView as it is. Everything else -- how runs
-// move forward, what goes over NATS, what is stored where -- is yours.
-//
-// The drivers' side is services/driver/adapter.go.
+const stateLock int64 = 472015
+
+type stepRuntime struct {
+	Attempts int
+	Job      string
+	RetryAt  *time.Time
+}
+type runRecord struct {
+	View   RunView
+	Cancel bool
+	Pause  string
+	State  map[string]*stepRuntime
+}
 type Executor struct {
 	db      *sql.DB
 	nc      *nats.Conn
 	storage *storage.Storage
+	js      nats.JetStreamContext
+	cancel  context.CancelFunc
+	wg      sync.WaitGroup
+	once    sync.Once
 }
 
 func NewExecutor(db *sql.DB, nc *nats.Conn, st *storage.Storage) *Executor {
 	return &Executor{db: db, nc: nc, storage: st}
 }
-
-// Start is called once, when the executor process starts.
 func (e *Executor) Start(ctx context.Context) error {
-	// TODO
-	log.Printf("executor: started, but nothing talks to the drivers yet")
+	var version int
+	if err := e.db.QueryRowContext(ctx, "SELECT version FROM schema_version").Scan(&version); err != nil || version != 1 {
+		return fmt.Errorf("incompatible database; recreate only disposable database: %v", err)
+	}
+	js, err := lab.Provision(e.nc)
+	if err != nil {
+		return err
+	}
+	e.js = js
+	owned, cancel := context.WithCancel(ctx)
+	e.cancel = cancel
+	e.wg.Add(3)
+	go func() { defer e.wg.Done(); e.scheduleLoop(owned) }()
+	go func() { defer e.wg.Done(); e.publishLoop(owned) }()
+	go func() { defer e.wg.Done(); e.resultLoop(owned) }()
 	return nil
 }
-
-// Close is called once, when the executor process stops.
-func (e *Executor) Close() {}
-
-func (e *Executor) CreateRun(ctx context.Context, workflowName string, steps []StepTemplate) (RunView, error) {
-	runID := "run-" + randomHex(6)
+func (e *Executor) Close() {
+	e.once.Do(func() {
+		if e.cancel != nil {
+			e.cancel()
+		}
+		e.wg.Wait()
+	})
+}
+func (e *Executor) transaction(ctx context.Context, fn func(*sql.Tx) error) error {
 	tx, err := e.db.BeginTx(ctx, nil)
 	if err != nil {
-		return RunView{}, fmt.Errorf("begin: %w", err)
+		return err
 	}
 	defer tx.Rollback()
-
-	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO runs (id, workflow_name) VALUES ($1, $2)`, runID, workflowName); err != nil {
-		return RunView{}, fmt.Errorf("insert run: %w", err)
+	if _, err = tx.ExecContext(ctx, "SELECT pg_advisory_xact_lock($1)", stateLock); err != nil {
+		return err
 	}
-	for position, st := range steps {
-		// A nil slice would be stored as NULL, not as an empty array.
-		deps := append([]string{}, st.DependsOn...)
-		if _, err := tx.ExecContext(ctx,
-			`INSERT INTO steps (run_id, name, position, device_id, depends_on) VALUES ($1, $2, $3, $4, $5)`,
-			runID, st.Name, position, st.DeviceID, pq.Array(deps)); err != nil {
-			return RunView{}, fmt.Errorf("insert step %s: %w", st.Name, err)
+	if err = fn(tx); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+func loadRecord(ctx context.Context, q interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}, id string) (runRecord, error) {
+	var b []byte
+	err := q.QueryRowContext(ctx, "SELECT record FROM runs WHERE id=$1", id).Scan(&b)
+	if errors.Is(err, sql.ErrNoRows) {
+		return runRecord{}, ErrRunNotFound
+	}
+	if err != nil {
+		return runRecord{}, err
+	}
+	var r runRecord
+	err = json.Unmarshal(b, &r)
+	return r, err
+}
+func saveRecord(ctx context.Context, tx *sql.Tx, r runRecord) error {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, "UPDATE runs SET record=$1 WHERE id=$2", b, r.View.ID)
+	return err
+}
+func (e *Executor) CreateRun(ctx context.Context, name string, steps []StepTemplate) (RunView, error) {
+	for _, s := range steps {
+		if !lab.SafeID(s.Name) || !lab.Supported(s.DeviceID) {
+			return RunView{}, fmt.Errorf("unsupported step/device %s/%s", s.Name, s.DeviceID)
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		return RunView{}, fmt.Errorf("commit: %w", err)
+	id := "run-" + randomHex(12)
+	r := runRecord{View: RunView{ID: id, WorkflowName: name, Status: RunPending, CreatedAt: time.Now().UTC(), Steps: []StepView{}}, State: map[string]*stepRuntime{}}
+	for _, s := range steps {
+		r.View.Steps = append(r.View.Steps, StepView{Name: s.Name, DeviceID: s.DeviceID, DependsOn: append([]string{}, s.DependsOn...), Status: StepPending})
+		r.State[s.Name] = &stepRuntime{}
 	}
-	return e.GetRun(ctx, runID)
-}
-
-func (e *Executor) StartRun(ctx context.Context, runID string) (RunView, error) {
-	if _, err := e.db.ExecContext(ctx,
-		`UPDATE runs SET status = $1, started_at = now() WHERE id = $2 AND status = $3`,
-		RunRunning, runID, RunPending); err != nil {
-		return RunView{}, fmt.Errorf("start run %s: %w", runID, err)
-	}
-	// TODO: get the run going.
-	log.Printf("executor: run %s started, but nothing happens yet", runID)
-	return e.GetRun(ctx, runID)
-}
-
-func (e *Executor) CancelRun(ctx context.Context, runID string) (RunView, error) {
-	// TODO
-	return RunView{}, fmt.Errorf("cancel: %w", ErrNotImplemented)
-}
-
-func (e *Executor) GetRun(ctx context.Context, runID string) (RunView, error) {
-	var rv RunView
-	err := e.db.QueryRowContext(ctx,
-		`SELECT id, workflow_name, status, created_at, started_at, finished_at FROM runs WHERE id = $1`,
-		runID).Scan(&rv.ID, &rv.WorkflowName, &rv.Status, &rv.CreatedAt, &rv.StartedAt, &rv.FinishedAt)
-	if errors.Is(err, sql.ErrNoRows) {
-		return RunView{}, ErrRunNotFound
-	}
+	b, err := json.Marshal(r)
 	if err != nil {
-		return RunView{}, fmt.Errorf("get run %s: %w", runID, err)
+		return RunView{}, err
 	}
-
-	rows, err := e.db.QueryContext(ctx,
-		`SELECT name, device_id, depends_on, status, started_at, finished_at, error, data_ref
-		   FROM steps WHERE run_id = $1 ORDER BY position`, runID)
+	_, err = e.db.ExecContext(ctx, "INSERT INTO runs(id,created_at,record) VALUES($1,$2,$3)", id, r.View.CreatedAt, b)
+	return r.View, err
+}
+func (e *Executor) StartRun(ctx context.Context, id string) (RunView, error) {
+	var view RunView
+	err := e.transaction(ctx, func(tx *sql.Tx) error {
+		r, err := loadRecord(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if r.View.Status == RunPending {
+			now := time.Now().UTC()
+			r.View.Status = RunRunning
+			r.View.StartedAt = &now
+		}
+		view = r.View
+		return saveRecord(ctx, tx, r)
+	})
+	return view, err
+}
+func (e *Executor) CancelRun(ctx context.Context, id string) (RunView, error) {
+	var view RunView
+	err := e.transaction(ctx, func(tx *sql.Tx) error {
+		r, err := loadRecord(ctx, tx, id)
+		if err != nil {
+			return err
+		}
+		if r.View.Status == RunPending || r.View.Status == RunRunning {
+			r.Cancel = true
+			settle(&r)
+		}
+		view = r.View
+		return saveRecord(ctx, tx, r)
+	})
+	return view, err
+}
+func (e *Executor) GetRun(ctx context.Context, id string) (RunView, error) {
+	r, err := loadRecord(ctx, e.db, id)
+	return r.View, err
+}
+func (e *Executor) ListRuns(ctx context.Context) ([]RunView, error) {
+	rows, err := e.db.QueryContext(ctx, "SELECT record FROM runs ORDER BY created_at DESC,id")
 	if err != nil {
-		return RunView{}, fmt.Errorf("list steps of %s: %w", runID, err)
+		return nil, err
 	}
 	defer rows.Close()
-	rv.Steps = []StepView{}
+	out := []RunView{}
 	for rows.Next() {
-		var sv StepView
-		var deps pq.StringArray
-		if err := rows.Scan(&sv.Name, &sv.DeviceID, &deps, &sv.Status,
-			&sv.StartedAt, &sv.FinishedAt, &sv.Error, &sv.DataRef); err != nil {
-			return RunView{}, fmt.Errorf("scan step of %s: %w", runID, err)
-		}
-		sv.DependsOn = []string(deps)
-		rv.Steps = append(rv.Steps, sv)
-	}
-	if err := rows.Err(); err != nil {
-		return RunView{}, fmt.Errorf("list steps of %s: %w", runID, err)
-	}
-	return rv, nil
-}
-
-func (e *Executor) ListRuns(ctx context.Context) ([]RunView, error) {
-	rows, err := e.db.QueryContext(ctx, `SELECT id FROM runs ORDER BY created_at DESC`)
-	if err != nil {
-		return nil, fmt.Errorf("list runs: %w", err)
-	}
-	var ids []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			rows.Close()
-			return nil, fmt.Errorf("scan run id: %w", err)
-		}
-		ids = append(ids, id)
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("list runs: %w", err)
-	}
-
-	runs := []RunView{}
-	for _, id := range ids {
-		rv, err := e.GetRun(ctx, id)
-		if err != nil {
+		var b []byte
+		if err = rows.Scan(&b); err != nil {
 			return nil, err
 		}
-		runs = append(runs, rv)
+		var r runRecord
+		if err = json.Unmarshal(b, &r); err != nil {
+			return nil, err
+		}
+		out = append(out, r.View)
 	}
-	return runs, nil
+	return out, rows.Err()
 }
-
 func randomHex(n int) string {
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
-		panic(fmt.Sprintf("crypto/rand: %v", err))
+		panic(err)
 	}
 	return hex.EncodeToString(b)
+}
+func ptr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+func settle(r *runRecord) {
+	failed := false
+	for _, s := range r.View.Steps {
+		if s.Status == StepFailed {
+			failed = true
+		}
+	}
+	if r.Cancel || failed {
+		for i := range r.View.Steps {
+			s := &r.View.Steps[i]
+			state := r.State[s.Name]
+			if state.Job != "" {
+				continue
+			}
+			if state.RetryAt != nil {
+				state.RetryAt = nil
+				s.Status = StepFailed
+				s.Error = ptr("retry suppressed by run stop")
+			} else if s.Status == StepPending {
+				s.Status = StepCancelled
+			}
+		}
+	}
+	outstanding := false
+	all := true
+	for _, s := range r.View.Steps {
+		if s.Status == StepRunning || s.Status == StepPending {
+			outstanding = true
+		}
+		if s.Status != StepCompleted {
+			all = false
+		}
+	}
+	if outstanding {
+		return
+	}
+	now := time.Now().UTC()
+	r.View.FinishedAt = &now
+	switch {
+	case r.Cancel:
+		r.View.Status = RunCancelled
+	case all:
+		r.View.Status = RunCompleted
+	default:
+		r.View.Status = RunFailed
+	}
 }
