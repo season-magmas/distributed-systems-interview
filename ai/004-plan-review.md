@@ -1,0 +1,2 @@
+Can you review the implementation plans in ai/003-plan-part-?.md and check them for inconsistencies and that they meet the requirements set out in README.md 
+Then update the plan files accordingly and commit changes.
