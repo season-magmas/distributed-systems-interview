@@ -79,6 +79,21 @@ func (w *worker) run(ctx context.Context, c lab.Command, publish func(lab.Report
 				executions = append(executions, x)
 			}
 		}
+		if ledgerConflict(job.Report.Executions, executions) {
+			if job.Report.Error != "spool and ledger evidence conflict" {
+				job.Report.Error = "spool and ledger evidence conflict"
+				job.Report.Terminal = false
+				job.Report.Revision++
+				job.Report.ID = fmt.Sprintf("report-%s-%d", c.JobID, job.Report.Revision)
+				if err = w.spool.Save(c.JobID, job); err != nil {
+					return job.Report, err
+				}
+			}
+			if err = publish(job.Report); err != nil {
+				return job.Report, err
+			}
+			return job.Report, errors.New(job.Report.Error)
+		}
 		if len(executions) == 0 && !status.Busy && !waiting {
 			waiting = true
 			receiver = make(chan result, 1)
@@ -242,3 +257,25 @@ func (w *worker) storeMeasurement(ctx context.Context, job *durableJob, x *lab.E
 	return nil
 }
 func reportBytes(r lab.Report) []byte { b, _ := json.Marshal(r); return b }
+
+func ledgerConflict(previous []lab.Execution, current []instrument.Execution) bool {
+	for _, old := range previous {
+		found := false
+		for _, physical := range current {
+			if old.ID != physical.ExecutionID {
+				continue
+			}
+			found = true
+			if !old.StartedAt.Equal(stamp(physical.StartedAt)) || (old.Outcome != "running" && old.Outcome != physical.Outcome) {
+				return true
+			}
+			if old.Hash != "" && (physical.DataSHA256 == nil || *physical.DataSHA256 != old.Hash) {
+				return true
+			}
+		}
+		if !found {
+			return true
+		}
+	}
+	return false
+}
