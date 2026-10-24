@@ -215,7 +215,7 @@ func TestWorkerRecoversVerifiedObjectWithoutAnotherWrite(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	r, err := w.run(ctx, c, func(lab.Report) error { return nil })
-	if err != nil || !r.Terminal || r.Executions[0].DataState != lab.Stored {
+	if err != nil || !r.Terminal || r.Executions[0].DataState != lab.Stored || r.Executions[0].DataRef != "s3://test/"+key || store.failures != 100 {
 		t.Fatalf("verified object could not recover lost upload response: %+v %v", r, err)
 	}
 }
