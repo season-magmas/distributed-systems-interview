@@ -171,11 +171,12 @@ class Suite:
         for url in self.instruments.values():
             until(lambda url=url: request(url + '/status'), label='instrument readiness')
         if not self.args.http_only:
-            assert not self.graph('{ __schema { queryType { name } mutationType { name } } }').get('errors'), 'GraphQL not ready'
+            assert not self.graph('{ __schema { queryType { name } mutationType { name } } }', read_only=True).get('errors'), 'GraphQL not ready'
         self.snapshot('ready')
 
     def graph(self, query, variables=None, *, read_only=False):
-        return request(self.executor + '/graphql', {'query': query, 'variables': variables or {}})
+        operation = lambda: request(self.executor + '/graphql', {'query': query, 'variables': variables or {}})
+        return until(operation, timeout=15, label='GraphQL read readiness') if read_only else operation()
 
     def create(self, workflow=None):
         run = request(self.executor + '/runs', {} if workflow is None else {'workflow_name': workflow})
@@ -235,7 +236,7 @@ class Suite:
                         assert prior and prior[-1]['outcome'] == 'completed' and prior[-1]['finished_at'] <= x['started_at'], 'dependency ordering violation'
             if not self.args.http_only:
                 query = '''query($id:ID!){run(id:$id){id status cancellationRequested dispatchPaused steps{name status attempts{jobId number recoveryError executions{id outcome measurement{state sha256 dataRef}}}}}}'''
-                body = self.graph(query, {'id': run})
+                body = self.graph(query, {'id': run}, read_only=True)
                 assert not body.get('errors'), body
                 graph = body['data']['run']
                 assert graph['status'].lower() == view['status'], 'HTTP/GraphQL mismatch'
@@ -380,6 +381,10 @@ class Suite:
             routine.append('graphql')
         extended = ['restart:nats', 'restart:postgres', 'unresolved', 'storage-driver', 'hang:incubator-1:long', 'random:11', 'random:23', 'random:47']
         scenarios = [self.args.scenario] if self.args.scenario else routine + (extended if self.args.suite == 'extended' else []) + ['final-acceptance']
+        if getattr(self.args, 'start_at', None):
+            if self.args.start_at not in scenarios:
+                raise ValueError('unknown resume scenario: ' + self.args.start_at)
+            scenarios = scenarios[scenarios.index(self.args.start_at):]
         failure = None
         try:
             if self.args.scenario != 'integration':
@@ -422,6 +427,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--suite', choices=['routine', 'extended'], default='routine')
     parser.add_argument('--scenario')
+    parser.add_argument('--start-at', help='explicitly resume a suite; earlier results remain in their original artifacts')
     parser.add_argument('--http-only', action='store_true', help='explicit pre-GraphQL implementation stage')
     parser.add_argument('--host', default=os.environ.get('LAB_TEST_HOST', 'localhost'))
     sys.exit(Suite(parser.parse_args()).run())
