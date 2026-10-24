@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Breaks things on purpose.
 #
-#   ./scripts/chaos.sh kill executor                 # kill the executor process, then start it again
+#   ./scripts/chaos.sh kill <executor|driver>        # kill a process, then start it again
 #   ./scripts/chaos.sh disconnect <service> <secs>   # cut a service off the network for a while
 #   ./scripts/chaos.sh storage-down <secs>           # stop object storage for a while
 #   ./scripts/chaos.sh random [--seed N] [--for SECS]
@@ -62,11 +62,14 @@ network_of() {
 }
 
 do_kill() {
-  [ "$1" = "executor" ] || { echo "chaos: kill takes 'executor' only" >&2; exit 2; }
+  case "$1" in
+    executor|liquid-handler-1|incubator-1|plate-reader-1) ;;
+    *) echo "chaos: kill takes executor or a driver" >&2; exit 2 ;;
+  esac
   local id
-  id=$(container executor)
-  say "kill executor"
-  restore="docker start '$id' >/dev/null; say 'executor started again'"
+  id=$(container "$1")
+  say "kill $1"
+  restore="docker start '$id' >/dev/null; say '$1 started again'"
   docker kill "$id" >/dev/null
   undo
 }
@@ -143,7 +146,7 @@ do_random() {
 cmd=${1:-}
 [ $# -gt 0 ] && shift
 case "$cmd" in
-  kill)         [ $# -eq 1 ] || { echo "usage: chaos.sh kill executor" >&2; exit 2; }; do_kill "$1" ;;
+  kill)         [ $# -eq 1 ] || { echo "usage: chaos.sh kill <executor|driver>" >&2; exit 2; }; do_kill "$1" ;;
   disconnect)   [ $# -eq 2 ] || { echo "usage: chaos.sh disconnect <service> <secs>" >&2; exit 2; }; do_disconnect "$1" "$2" ;;
   storage-down) [ $# -eq 1 ] || { echo "usage: chaos.sh storage-down <secs>" >&2; exit 2; }; do_storage_down "$1" ;;
   random)       do_random "$@" ;;
