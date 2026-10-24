@@ -3,6 +3,7 @@ import argparse
 from collections import Counter
 import datetime
 import hashlib
+import http.client
 import json
 import os
 import pathlib
@@ -28,6 +29,22 @@ class DialFailure(OSError):
     """A TCP connection failed before any HTTP request bytes were sent."""
 
 
+class SuiteHTTPConnection(http.client.HTTPConnection):
+    def connect(self):
+        try:
+            super().connect()
+        except OSError as error:
+            raise DialFailure(*error.args) from error
+
+
+class SuiteHTTPHandler(urllib.request.HTTPHandler):
+    def http_open(self, request):
+        return self.do_open(SuiteHTTPConnection, request)
+
+
+urllib.request.install_opener(urllib.request.build_opener(SuiteHTTPHandler()))
+
+
 def request(url, body=None, json_mode=True):
     data = None if body is None else json.dumps(body).encode()
     deadline = time.monotonic() + 15
@@ -37,7 +54,8 @@ def request(url, body=None, json_mode=True):
             with urllib.request.urlopen(req, timeout=4) as response:
                 return json.load(response) if json_mode else response.read()
         except OSError as error:
-            if body is not None or time.monotonic() >= deadline:
+            before_send = isinstance(getattr(error, "reason", None), DialFailure)
+            if (body is not None and not before_send) or time.monotonic() >= deadline:
                 raise urllib.error.URLError(f'{url}: {error}') from error
             time.sleep(0.2)
 
