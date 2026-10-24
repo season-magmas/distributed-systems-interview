@@ -3,6 +3,7 @@ module github.com/automata-tech/distributed-systems-interview
 go 1.26.0
 
 require (
+	github.com/graphql-go/graphql v0.8.1
 	github.com/lib/pq v1.12.3
 	github.com/minio/minio-go/v7 v7.4.1
 	github.com/nats-io/nats.go v1.53.1
@@ -13,7 +14,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/graphql-go/graphql v0.8.1 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
