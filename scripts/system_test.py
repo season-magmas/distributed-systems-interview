@@ -11,6 +11,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 import urllib.error
 import urllib.request
 from system_config import isolated
@@ -21,11 +22,18 @@ FAULTS = ['LH_FAIL_PCT', 'LH_HANG_PCT', 'INC_FAIL_PCT', 'INC_HANG_PCT', 'PR_FAIL
 TERMINAL = {'completed', 'failed', 'cancelled'}
 
 
-def request(url, body=None):
+def request(url, body=None, json_mode=True):
     data = None if body is None else json.dumps(body).encode()
-    req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
-    with urllib.request.urlopen(req, timeout=4) as response:
-        return json.load(response)
+    deadline = time.monotonic() + 15
+    while True:
+        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+        try:
+            with urllib.request.urlopen(req, timeout=4) as response:
+                return json.load(response) if json_mode else response.read()
+        except OSError as error:
+            if body is not None or time.monotonic() >= deadline:
+                raise urllib.error.URLError(f'{url}: {error}') from error
+            time.sleep(0.2)
 
 
 def until(check, timeout=120, label='condition'):
@@ -212,8 +220,7 @@ class Suite:
                     if step['device_id'] == DEVICES[2]:
                         ref = step['data_ref']
                         assert ref and ref.startswith('s3://'), 'missing data reference'
-                        with urllib.request.urlopen(self.storage + '/' + ref[5:], timeout=5) as response:
-                            digest = hashlib.sha256(response.read()).hexdigest()
+                        digest = hashlib.sha256(request(self.storage + '/' + ref[5:], json_mode=False)).hexdigest()
                         assert digest == physical[-1]['data_sha256'], 'measurement hash mismatch'
                 for x in physical:
                     for dependency in step['depends_on']:
@@ -374,7 +381,7 @@ class Suite:
                 try:
                     self.start(name);self.exercise(name);result['status'] = 'passed'
                 except BaseException as error:
-                    result['error'] = repr(error);failure = error
+                    result['error'] = repr(error);result['traceback'] = traceback.format_exc();failure = error
                 finally:
                     cleanup = self.cleanup()
                     result['cleanup_errors'] = cleanup
