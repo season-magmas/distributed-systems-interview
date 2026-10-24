@@ -7,6 +7,7 @@ import os
 import pathlib
 import random
 import socket
+import signal
 import subprocess
 import sys
 import threading
@@ -133,6 +134,13 @@ class Suite:
         self.compose('up', '-d', 'postgres', 'nats', 'storage')
         until(lambda: self.compose('exec', '-T', 'postgres', 'pg_isready', '-h', '127.0.0.1', '-U', 'lab_admin', '-d', 'lab_default', check=False).returncode == 0, label='Postgres readiness')
         self.compose('exec', '-T', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'lab_admin', '-d', 'lab_default', data=(ROOT / 'db/init.sql').read_bytes())
+        if self.host == 'localhost':
+            port = self.compose('port', 'postgres', '5432').stdout.decode().strip().rsplit(':', 1)[1]
+            try:
+                with socket.create_connection((self.host, int(port)), timeout=1):
+                    pass
+            except OSError:
+                self.host = 'host.docker.internal' 
         if name == 'integration':
             def address(service, port):
                 value = self.compose('port', service, str(port)).stdout.decode().strip()
@@ -153,13 +161,6 @@ class Suite:
         self.executor = endpoint('executor', 5001)
         self.storage = endpoint('storage', 8333)
         self.instruments = {device: endpoint(device, 7000) for device in DEVICES}
-        if self.args.host == 'localhost':
-            try:
-                request(self.executor + '/health')
-            except OSError:
-                self.executor = self.executor.replace('localhost', 'host.docker.internal')
-                self.storage = self.storage.replace('localhost', 'host.docker.internal')
-                self.instruments = {k: v.replace('localhost', 'host.docker.internal') for k, v in self.instruments.items()}
         until(lambda: request(self.executor + '/health'), label='executor readiness')
         for url in self.instruments.values():
             until(lambda url=url: request(url + '/status'), label='instrument readiness')
@@ -404,7 +405,12 @@ class Suite:
         return 1 if failure else 0
 
 
+def interrupted(signum, frame):
+    raise KeyboardInterrupt(f'interrupted by signal {signum}')
+
+
 if __name__ == '__main__':
+    signal.signal(signal.SIGTERM, interrupted)
     parser = argparse.ArgumentParser()
     parser.add_argument('--suite', choices=['routine', 'extended'], default='routine')
     parser.add_argument('--scenario')
