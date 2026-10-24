@@ -11,3 +11,6 @@
 *.out
 go.work
 go.work.sum
+
+/artifacts/
+__pycache__/
