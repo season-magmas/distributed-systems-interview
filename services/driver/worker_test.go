@@ -5,6 +5,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -156,5 +159,44 @@ func TestWorkerLostBytesDoesNotReread(t *testing.T) {
 	}
 	if len(w.inst.Status().Executions) != 1 {
 		t.Fatal("data loss repeated measurement")
+	}
+}
+
+func TestWorkerSpoolCapacityPreventsPhysicalStart(t *testing.T) {
+	w, c := testWorker(t, false)
+	fill, err := os.Create(filepath.Join(w.spool.Dir, "capacity"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = fill.Truncate(lab.SpoolLimit); err != nil {
+		t.Fatal(err)
+	}
+	fill.Close()
+	_, err = w.run(context.Background(), c, func(lab.Report) error { return nil })
+	if err == nil || len(w.inst.Status().Executions) != 0 {
+		t.Fatal("started work without durable spool capacity")
+	}
+}
+func TestWorkerHashConflictPausesWithoutRereading(t *testing.T) {
+	w, c := testWorker(t, false)
+	if _, err := w.inst.Run(context.Background(), instrument.Job{JobID: c.JobID, RunID: c.RunID, StepName: c.Step}); err != nil {
+		t.Fatal(err)
+	}
+	x := w.inst.Status().Executions[0]
+	key := fmt.Sprintf("runs/%s/jobs/%s/executions/%s/measurement.csv", c.RunID, c.JobID, x.ExecutionID)
+	w.store.(*memoryStore).objects[key] = []byte("conflicting measurement")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	report, err := w.run(ctx, c, func(r lab.Report) error {
+		if strings.Contains(r.Error, "hash conflict") {
+			cancel()
+		}
+		return nil
+	})
+	if err == nil || report.Terminal || !strings.Contains(report.Error, "hash conflict") {
+		t.Fatalf("conflict hidden: %+v %v", report, err)
+	}
+	if len(w.inst.Status().Executions) != 1 {
+		t.Fatal("integrity conflict repeated physical work")
 	}
 }
