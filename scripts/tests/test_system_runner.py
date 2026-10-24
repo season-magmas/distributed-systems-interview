@@ -40,3 +40,10 @@ class RunnerSafetyTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class RetryOracleTests(unittest.TestCase):
+    def test_exhaustion_is_per_step_not_per_device(self):
+        executions = [{'step_name': 'incubate_samples'}] * 3 + [{'step_name': 'warm_reagent_plate'}] * 2
+        system_test.assert_retry_exhaustion(executions)
+        with self.assertRaises(AssertionError):
+            system_test.assert_retry_exhaustion([{'step_name': 'incubate_samples'}] * 4)

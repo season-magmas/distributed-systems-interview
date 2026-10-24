@@ -51,6 +51,10 @@ def until(check, timeout=120, label='condition'):
     raise AssertionError(f'timed out waiting for {label}: {last}')
 
 
+def assert_retry_exhaustion(executions):
+    assert len(executions) == 3, "retry budget not exhausted"
+
+
 def fixture(device, step, kind):
     for seed in range(10000):
         def roll(attempt):
@@ -152,7 +156,7 @@ class Suite:
                         pass
                 except OSError:
                     host = 'host.docker.internal'
-            self.integration_env = dict(self.env, LAB_TEST_DATABASE=f'postgres://lab_admin:lab_password@{host}:{address("postgres", 5432)}/executor_db?sslmode=disable', LAB_TEST_NATS=f'nats://{host}:{address("nats", 4222)}')
+            self.integration_env = dict(self.env, LAB_TEST_DATABASE=f'postgres://lab_admin:lab_password@{host}:{address("postgres", 5432)}/executor_db?sslmode=disable', LAB_TEST_NATS=f'nats://{host}:{address("nats", 4222)}', LAB_TEST_S3=f'http://{host}:{address("storage", 8333)}')
             return
         self.compose('up', '-d', '--no-build', 'executor', *DEVICES)
         def endpoint(service, port):
@@ -255,7 +259,7 @@ class Suite:
 
     def exercise(self, name):
         if name == 'integration':
-            for package in ['./services/common/lab', './services/executor']:
+            for package in ['./services/common/lab', './services/driver', './services/executor']:
                 result = subprocess.run(['go', 'test', '-cover', package, '-run', 'Integration', '-count=1'], cwd=ROOT, env=self.integration_env, capture_output=True, timeout=180)
                 (self.directory / (package.rsplit('/', 1)[-1] + '.log')).write_bytes(result.stdout + result.stderr)
                 assert result.returncode == 0, result.stdout.decode() + result.stderr.decode()
