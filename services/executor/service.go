@@ -217,6 +217,11 @@ func settle(r *runRecord) {
 				s.Error = ptr("retry suppressed by run stop")
 			} else if s.Status == StepPending {
 				s.Status = StepCancelled
+				reason := "not started: another step failed"
+				if r.Cancel {
+					reason = "not started: run cancelled"
+				}
+				s.Error = ptr(reason)
 			}
 		}
 	}
