@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/automata-tech/distributed-systems-interview/services/common/lab"
+	"strings"
 	"testing"
 	"time"
 )
@@ -97,5 +98,83 @@ func TestIntegrationOutboxFailureRollsBackAuthorization(t *testing.T) {
 		if err = e.db.QueryRowContext(ctx, query, run.ID).Scan(&n); err != nil || n != 0 {
 			t.Fatalf("partially committed authorization: %d %v", n, err)
 		}
+	}
+}
+
+func TestIntegrationLateEvidenceClearsUncertainty(t *testing.T) {
+	e, ctx := integrationExecutor(t)
+	run, err := e.CreateRun(ctx, "late", []StepTemplate{{Name: "late", DeviceID: "incubator-1"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.StartRun(ctx, run.ID)
+	if err = e.schedule(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var b []byte
+	if err = e.db.QueryRowContext(ctx, "SELECT command FROM attempts WHERE run_id=$1", run.ID).Scan(&b); err != nil {
+		t.Fatal(err)
+	}
+	var c lab.Command
+	json.Unmarshal(b, &c)
+	c.CreatedAt = time.Now().UTC().Add(-time.Minute)
+	c.DispatchDeadline = c.CreatedAt.Add(lab.DispatchTimeout)
+	b, _ = json.Marshal(c)
+	if _, err = e.db.ExecContext(ctx, "UPDATE attempts SET command=$1 WHERE job_id=$2", b, c.JobID); err != nil {
+		t.Fatal(err)
+	}
+	if err = e.schedule(ctx); err != nil {
+		t.Fatal(err)
+	}
+	paused, err := loadRecord(ctx, e.db, run.ID)
+	if err != nil || paused.Pause == "" || paused.View.Status != RunRunning {
+		t.Fatalf("timeout fabricated failure: %+v %v", paused, err)
+	}
+	now := time.Now().UTC()
+	r := lab.Report{Version: lab.Version, ID: "late-" + c.JobID, Command: c, Revision: 1, Terminal: true, Executions: []lab.Execution{{ID: "late-execution", Outcome: "completed", StartedAt: now, FinishedAt: &now, DataState: lab.NotApplicable}}}
+	b, _ = json.Marshal(r)
+	if err = e.applyReport(ctx, b); err != nil {
+		t.Fatal(err)
+	}
+	settled, err := loadRecord(ctx, e.db, run.ID)
+	if err != nil || settled.View.Status != RunCompleted || settled.Pause != "" || settled.View.Steps[0].Error != nil {
+		t.Fatalf("late proof did not clear uncertainty: %+v %v", settled, err)
+	}
+}
+
+func TestIntegrationDataLossRetainsPhysicalSuccess(t *testing.T) {
+	e, ctx := integrationExecutor(t)
+	run, err := e.CreateRun(ctx, "lost", []StepTemplate{{Name: "read", DeviceID: "plate-reader-1"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.StartRun(ctx, run.ID)
+	if err = e.schedule(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var b []byte
+	if err = e.db.QueryRowContext(ctx, "SELECT command FROM attempts WHERE run_id=$1", run.ID).Scan(&b); err != nil {
+		t.Fatal(err)
+	}
+	var c lab.Command
+	json.Unmarshal(b, &c)
+	now := time.Now().UTC()
+	r := lab.Report{Version: lab.Version, ID: "lost-" + c.JobID, Command: c, Revision: 1, Terminal: true, Executions: []lab.Execution{{ID: "lost-execution", Outcome: "completed", StartedAt: now, FinishedAt: &now, Hash: strings.Repeat("a", 64), DataState: lab.Lost, DataError: "measurement_data_lost"}}}
+	b, _ = json.Marshal(r)
+	if err = e.applyReport(ctx, b); err != nil {
+		t.Fatal(err)
+	}
+	view, err := e.GetRun(ctx, run.ID)
+	if err != nil || view.Status != RunFailed || view.Steps[0].Error == nil || *view.Steps[0].Error != "measurement_data_lost" {
+		t.Fatalf("data loss hidden: %+v %v", view, err)
+	}
+	var stored []byte
+	if err = e.db.QueryRowContext(ctx, "SELECT report FROM attempts WHERE run_id=$1", run.ID).Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	var evidence lab.Report
+	json.Unmarshal(stored, &evidence)
+	if evidence.Executions[0].Outcome != "completed" {
+		t.Fatal("physical success rewritten as failure")
 	}
 }

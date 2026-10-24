@@ -29,6 +29,10 @@ func integrationExecutor(t *testing.T) (*Executor, context.Context) {
 	t.Cleanup(nc.Close)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	t.Cleanup(cancel)
+	// LAB_TEST_DATABASE is the harness-owned disposable database, never a live stack.
+	if _, err = db.ExecContext(ctx, "TRUNCATE reservations, outbox, attempts, inbox, rejections, runs"); err != nil {
+		t.Fatal(err)
+	}
 	e := NewExecutor(db, nc, nil)
 	if err = e.Start(ctx); err != nil {
 		t.Fatal(err)
