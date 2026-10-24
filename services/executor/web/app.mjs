@@ -300,7 +300,14 @@ function mount() {
   }
   window.addEventListener('hashchange', selectHash);
   selectHash();
-  const poll = setInterval(() => notebook.refresh(), POLL_INTERVAL_MS);
-  window.addEventListener('pagehide', () => clearInterval(poll), { once: true });
+  let poll;
+  function resumePolling() {
+    clearInterval(poll);
+    poll = setInterval(() => notebook.refresh(), POLL_INTERVAL_MS);
+    notebook.refresh();
+  }
+  resumePolling();
+  window.addEventListener('pageshow', resumePolling);
+  window.addEventListener('pagehide', () => clearInterval(poll));
 }
 if (typeof document !== 'undefined') mount();
