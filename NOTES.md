@@ -11,6 +11,9 @@ design intentions and assumptions.
   * Rejected suggested use of graphql mutations as we already have existing HTTP methods and want to keep things as simple as possible.
     * This was then reverted on plan review
 
+## Implementation
+* Use Sol to implement the plan as above.
+
 ## 1. Topology
 
 - Executor-to-driver subjects and message payloads: TODO
