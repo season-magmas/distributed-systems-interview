@@ -140,7 +140,7 @@ class Suite:
                 with socket.create_connection((self.host, int(port)), timeout=1):
                     pass
             except OSError:
-                self.host = 'host.docker.internal' 
+                self.host = 'host.docker.internal'
         if name == 'integration':
             def address(service, port):
                 value = self.compose('port', service, str(port)).stdout.decode().strip()
@@ -233,6 +233,7 @@ class Suite:
                 assert not body.get('errors'), body
                 graph = body['data']['run']
                 assert graph['status'].lower() == view['status'], 'HTTP/GraphQL mismatch'
+                assert not graph['dispatchPaused'], 'terminal run retained an unresolved dispatch pause'
                 observed = {x['id'] for s in graph['steps'] for a in s['attempts'] for x in a['executions']}
                 actual = {x['execution_id'] for _, x in executions if x['run_id'] == run}
                 assert observed == actual, 'GraphQL lost physical execution history'
@@ -255,7 +256,7 @@ class Suite:
     def exercise(self, name):
         if name == 'integration':
             for package in ['./services/common/lab', './services/executor']:
-                result = subprocess.run(['go', 'test', package, '-run', 'Integration', '-count=1'], cwd=ROOT, env=self.integration_env, capture_output=True, timeout=180)
+                result = subprocess.run(['go', 'test', '-cover', package, '-run', 'Integration', '-count=1'], cwd=ROOT, env=self.integration_env, capture_output=True, timeout=180)
                 (self.directory / (package.rsplit('/', 1)[-1] + '.log')).write_bytes(result.stdout + result.stderr)
                 assert result.returncode == 0, result.stdout.decode() + result.stderr.decode()
             return
@@ -375,7 +376,8 @@ class Suite:
         scenarios = [self.args.scenario] if self.args.scenario else routine + (extended if self.args.suite == 'extended' else []) + ['final-acceptance']
         failure = None
         try:
-            self.compose('build', 'executor', *DEVICES, timeout=900)
+            if self.args.scenario != 'integration':
+                self.compose('build', 'executor', *DEVICES, timeout=900)
             for name in scenarios:
                 print('RUN', name, flush=True);started = time.monotonic()
                 result = {'scenario': name, 'status': 'failed'}

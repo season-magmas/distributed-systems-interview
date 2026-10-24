@@ -233,6 +233,7 @@ func settle(r *runRecord) {
 	if outstanding {
 		return
 	}
+	r.Pause = ""
 	now := time.Now().UTC()
 	r.View.FinishedAt = &now
 	switch {
