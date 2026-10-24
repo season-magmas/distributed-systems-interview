@@ -60,6 +60,8 @@ func (w *worker) run(ctx context.Context, c lab.Command, publish func(lab.Report
 	}
 	var waiting bool
 	var receiver chan result
+	var ready chan struct{}
+	observations := 0
 	var waitCancel context.CancelFunc
 	defer func() {
 		if waitCancel != nil {
@@ -79,18 +81,21 @@ func (w *worker) run(ctx context.Context, c lab.Command, publish func(lab.Report
 		if len(executions) == 0 && !status.Busy && !waiting {
 			waiting = true
 			receiver = make(chan result, 1)
+			ready = make(chan struct{})
 			call, cancel := context.WithCancel(ctx)
 			waitCancel = cancel
-			go func() {
+			go func(output chan result, signal chan struct{}) {
+				defer close(signal)
 				out, err := w.inst.Run(call, instrument.Job{JobID: c.JobID, RunID: c.RunID, StepName: c.Step})
-				receiver <- result{out, err}
-			}()
+				output <- result{out, err}
+			}(receiver, ready)
 		}
 		if waiting {
 			select {
 			case got := <-receiver:
 				waiting = false
 				receiver = nil
+				ready = nil
 				if got.err != nil {
 					if ctx.Err() != nil {
 						return job.Report, ctx.Err()
@@ -115,7 +120,8 @@ func (w *worker) run(ctx context.Context, c lab.Command, publish func(lab.Report
 				finish := stamp(*x.FinishedAt)
 				physical.FinishedAt = &finish
 			}
-			deadline := physical.StartedAt.Add(c.RecoveryTimeout)
+			window := recoveryWindow(c.RecoveryTimeout, w.inst.Duration(), duration("HANG_DURATION", "30s"))
+			deadline := physical.StartedAt.Add(window)
 			if next.RecoveryDeadline == nil {
 				next.RecoveryDeadline = &deadline
 			}
@@ -171,14 +177,22 @@ func (w *worker) run(ctx context.Context, c lab.Command, publish func(lab.Report
 			delay = lab.Backoff(failures - 1)
 		} else {
 			failures = 0
-			delay = lab.PollInterval
+			delay = lab.Backoff(observations)
+			observations++
 			if job.Report.Terminal {
 				return job.Report, nil
 			}
 		}
-		if !lab.Wait(ctx, delay) {
-			break
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return job.Report, ctx.Err()
+		case <-ready:
+			timer.Stop()
+		case <-timer.C:
 		}
+
 	}
 	return job.Report, ctx.Err()
 }

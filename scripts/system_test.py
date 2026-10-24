@@ -119,6 +119,13 @@ class Suite:
         self.compose('up', '-d', 'postgres', 'nats', 'storage')
         until(lambda: self.compose('exec', '-T', 'postgres', 'pg_isready', '-h', '127.0.0.1', '-U', 'lab_admin', '-d', 'lab_default', check=False).returncode == 0, label='Postgres readiness')
         self.compose('exec', '-T', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'lab_admin', '-d', 'lab_default', data=(ROOT / 'db/init.sql').read_bytes())
+        if name == 'integration':
+            def address(service, port):
+                value = self.compose('port', service, str(port)).stdout.decode().strip()
+                return value.rsplit(':', 1)[1]
+            host = self.host if self.host != 'localhost' else 'host.docker.internal'
+            self.integration_env = dict(self.env, LAB_TEST_DATABASE=f'postgres://lab_admin:lab_password@{host}:{address("postgres", 5432)}/executor_db?sslmode=disable', LAB_TEST_NATS=f'nats://{host}:{address("nats", 4222)}')
+            return
         self.compose('up', '-d', '--no-build', 'executor', *DEVICES)
         def endpoint(service, port):
             address = self.compose('port', service, str(port)).stdout.decode().strip()
@@ -226,6 +233,12 @@ class Suite:
         (self.directory / (name + '.json')).write_text(json.dumps(result, indent=2))
 
     def exercise(self, name):
+        if name == 'integration':
+            for package in ['./services/common/lab', './services/executor']:
+                result = subprocess.run(['go', 'test', '-race', package, '-run', 'Integration', '-count=1'], cwd=ROOT, env=self.integration_env, capture_output=True, timeout=180)
+                (self.directory / (package.rsplit('/', 1)[-1] + '.log')).write_bytes(result.stdout + result.stderr)
+                assert result.returncode == 0, result.stdout.decode() + result.stderr.decode()
+            return
         if name in ('happy', 'triple', 'final-acceptance'):
             env = dict(self.env, EXEC=self.executor, S3=self.storage, INSTRUMENTS=' '.join(self.instruments.values()))
             args = ['bash', 'scripts/acceptance.sh'] + (['Triple Assay'] if name == 'triple' else [])
@@ -322,7 +335,7 @@ class Suite:
             log.close()
         self.processes = []
         try:
-            if hasattr(self, 'instruments'):
+            if hasattr(self, 'instruments') and self.directory.name != 'integration':
                 self.snapshot('diagnostics')
             logs = self.compose('logs', '--no-color', '--timestamps', check=False, timeout=30)
             (self.directory / 'services.log').write_bytes(logs.stdout)
@@ -335,7 +348,7 @@ class Suite:
         return errors
 
     def run(self):
-        routine = ['happy', 'triple', 'kill:executor'] + ['disconnect:' + s for s in ['executor'] + DEVICES] + ['kill:' + d for d in DEVICES] + ['storage', 'failure:incubator-1', 'failure:plate-reader-1', 'failure:incubator-1:exhaust', 'failure:liquid-handler-1', 'hang:incubator-1', 'hang:plate-reader-1', 'hang:liquid-handler-1', 'concurrent', 'cancel-pending', 'cancel-active', 'random:7']
+        routine = ['integration', 'happy', 'triple', 'kill:executor'] + ['disconnect:' + s for s in ['executor'] + DEVICES] + ['kill:' + d for d in DEVICES] + ['storage', 'failure:incubator-1', 'failure:plate-reader-1', 'failure:incubator-1:exhaust', 'failure:liquid-handler-1', 'hang:incubator-1', 'hang:plate-reader-1', 'hang:liquid-handler-1', 'concurrent', 'cancel-pending', 'cancel-active', 'random:7']
         if not self.args.http_only:
             routine.append('graphql')
         extended = ['restart:nats', 'restart:postgres', 'unresolved', 'storage-driver', 'hang:incubator-1:long', 'random:11', 'random:23', 'random:47']
