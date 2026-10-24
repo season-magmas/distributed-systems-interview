@@ -6,7 +6,8 @@ Replace the placeholders as work progresses. Record observations separately from
 design intentions and assumptions.
 
 ## Plan
-Use Astra to help create a high level plan. Asking me question on how we should proceed. These are captured in ai/001-plan-response.md
+* Use Astra to help create a high level plan. Asking me question on how we should proceed. These are captured in ai/001-plan-response.md.
+* Each part was then planned in detailed using a simple Q/A process. These are captured in ai/003-plan-part-X.md.
 
 ## 1. Topology
 

@@ -1,8 +1,8 @@
 # Proposed implementation plan
 
 Status: proposed for discussion, 2026-10-24. Implementation has not started.
-D1 and D3 are agreed; D2 has an agreed retry strategy with safety details still
-open. Other recommendations remain proposals. We will review and refine the steps
+D1–D4 are agreed as detailed in `003-plan-part-1.md`; uncertainty presentation
+(D7) remains proposed. Other recommendations remain proposals. We will review and refine the steps
 in order before proceeding to implementation.
 
 ## Objective and constraints
@@ -42,9 +42,9 @@ exclusive across all runs, not just within one workflow.
 | ID | Question | Recommendation | Alternative and tradeoff | Status |
 | --- | --- | --- | --- | --- |
 | D1 | How should commands and results travel? | Durable JetStream delivery, plus a Postgres transactional outbox | Core NATS with persisted reconciliation reduces broker setup but needs explicit recovery for every lost request/reply | Agreed: JetStream and Postgres outbox |
-| D2 | When may physical work repeat? | Bounded retries with exponential delays, starting at 0.5 seconds and doubling to an 8-second cap, with a recovery window exceeding the configured hang duration; proposed eligibility is confirmed retryable failures | Stop after every failure for simplicity, or explicitly permit safe-device re-execution with a new attempt and full history | Exponential bounded retries agreed; count and ambiguity policy pending |
+| D2 | When may physical work repeat? | Bounded retries with exponential delays, starting at 0.5 seconds and doubling to an 8-second cap, with a recovery window exceeding the configured hang duration; proposed eligibility is confirmed retryable failures | Stop after every failure for simplicity, or explicitly permit safe-device re-execution with a new attempt and full history | Agreed: three physical attempts; retry confirmed hangs on safe devices; see part 1 |
 | D3 | How should clients follow runs? | GraphQL queries and mutations with polling initially | Subscriptions improve responsiveness but add connection and replay semantics | Agreed: polling for simplicity |
-| D4 | What should cancellation mean? | Stop authorizing new work, reconcile already dispatched work, preserve its actual outcomes, and settle cancellation after active work is accounted for | Immediate terminal cancellation is faster to report but can hide continuing physical work | Review in step 1 |
+| D4 | What should cancellation mean? | Stop authorizing new work, reconcile already dispatched work, preserve its actual outcomes, and settle cancellation after active work is accounted for | Immediate terminal cancellation is faster to report but can hide continuing physical work | Agreed; detailed in part 1 |
 | D5 | What deployment scope do we support? | One executor and one adapter per device initially, with concurrent runs and durable recovery | Multiple active instances require ownership/fencing design, especially around physical execution | Review in step 2 |
 | D6 | How should driver death be injected? | Extend `chaos.sh kill` to the existing driver allowlist, preserving executor behavior | A companion helper avoids editing the supplied script but splits fault injection across tools | Review in step 3 |
 | D7 | How should uncertainty appear in the fixed HTTP model? | Explicit error reasons and conservative status mapping; expose execution and data state separately in GraphQL | Leaving unresolved work running avoids overstating failure but needs a clear operational resolution path | Review in step 1 |
@@ -79,8 +79,8 @@ Agree on a small state-transition table before selecting implementation details:
   the previous attempt has a known terminal outcome, and the agreed safety policy
   permits another attempt. An idle device alone does not prove retry safety.
   Hangs on a liquid handler must not trigger an automatic repeat dispense.
-- Keep the maximum physical-attempt count separate and bounded; its exact value
-  and eligibility for hung retryable devices remain to be agreed. On recovery
+- Allow at most three physical attempts; confirmed hangs on incubators and plate
+  readers are retryable after the device becomes idle. On recovery
   deadline exhaustion, retain the unresolved evidence and stop for review rather
   than infer that physical work stopped.
 - Define plate-reader completion: the selected execution completed and its actual
@@ -245,13 +245,14 @@ User decisions recorded on 2026-10-24:
   that recovery must outlast the default 30-second hang. Extend the proposed
   recovery checks to 0.5, 1, 2, 4, 8, 8, 8, 8 seconds (39.5 seconds total), with
   a configurable deadline proposed at 45 seconds and adjusted for longer hangs.
-  Recovery checks do not count as physical attempts. The earlier suggestion of
-  five retries is superseded; the physical-attempt limit and eligibility for
-  hangs, ambiguous execution, or irrecoverable measurement loss remain open.
+  Recovery checks do not count as physical attempts. Part 1 confirms three total
+  physical attempts and retries for confirmed hangs on safe devices. Lost
+  measurement bytes cause explicit step failure without automatic re-reading.
 - D3: use GraphQL polling to keep the interface as simple as possible.
 
-D4–D7 remain queued for the relevant step review. Start the next discussion with
-step 1's execution, data, and cancellation semantics. These decisions authorize
+D4 is agreed: cancellation stops new work and settles outstanding work while
+preserving actual outcomes. Part 1 is specified in `003-plan-part-1.md`; its D7
+status mapping is proposed for review. D5 and D6 remain queued for parts 2 and 3. These decisions authorize
 plan refinement; implementation still follows the requested step-by-step review.
 
 Validation for this document: repository/source review and whitespace checks only.
