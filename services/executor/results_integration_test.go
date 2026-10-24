@@ -202,3 +202,58 @@ func TestIntegrationResultConsumerRetriesBindFailureUntilCancelled(t *testing.T)
 		t.Fatal("result consumer ignored cancellation")
 	}
 }
+
+func TestIntegrationDataVerificationGatesDependentDispatch(t *testing.T) {
+	e, ctx := integrationExecutor(t)
+	templates := []StepTemplate{{Name: "read", DeviceID: "plate-reader-1"}, {Name: "incubate", DeviceID: "incubator-1", DependsOn: []string{"read"}}}
+	run, err := e.CreateRun(ctx, "data-gate", templates)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.StartRun(ctx, run.ID)
+	if err = e.schedule(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var b []byte
+	if err = e.db.QueryRowContext(ctx, "SELECT command FROM attempts WHERE run_id=$1", run.ID).Scan(&b); err != nil {
+		t.Fatal(err)
+	}
+	var c lab.Command
+	json.Unmarshal(b, &c)
+	now := time.Now().UTC()
+	pending := lab.Report{Version: lab.Version, ID: "pending-" + c.JobID, Command: c, Revision: 1, Executions: []lab.Execution{{ID: "read-proof", Outcome: "completed", StartedAt: now, FinishedAt: &now, Hash: strings.Repeat("b", 64), DataState: lab.Pending}}}
+	b, _ = json.Marshal(pending)
+	if err = e.applyReport(ctx, b); err != nil {
+		t.Fatal(err)
+	}
+	if err = e.schedule(ctx); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err = e.db.QueryRowContext(ctx, "SELECT count(*) FROM attempts WHERE run_id=$1", run.ID).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("dependent authorized before data verification: %d %v", count, err)
+	}
+	verified := pending
+	verified.ID = "verified-" + c.JobID
+	verified.Revision = 2
+	verified.Terminal = true
+	verified.Executions = append([]lab.Execution{}, pending.Executions...)
+	verified.Executions[0].DataState = lab.Stored
+	verified.Executions[0].DataRef = "s3://test-data/runs/" + run.ID + "/jobs/" + c.JobID + "/executions/read-proof/measurement.csv"
+	proofTime := time.Now().UTC()
+	b, _ = json.Marshal(verified)
+	if err = e.applyReport(ctx, b); err != nil {
+		t.Fatal(err)
+	}
+	if err = e.schedule(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err = e.db.QueryRowContext(ctx, "SELECT command FROM attempts WHERE run_id=$1 AND step_name='incubate'", run.ID).Scan(&b); err != nil {
+		t.Fatal(err)
+	}
+	var child lab.Command
+	json.Unmarshal(b, &child)
+	if child.CreatedAt.Before(proofTime) {
+		t.Fatal("persisted dispatch predates verified prerequisite evidence")
+	}
+}

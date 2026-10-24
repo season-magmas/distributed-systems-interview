@@ -20,6 +20,17 @@ class RunnerSafetyTests(unittest.TestCase):
                 system_test.request('http://example.test/runs', {})
             self.assertEqual(opener.call_count, 1)
 
+    def test_read_only_graphql_retries_without_replaying_mutations(self):
+        suite = object.__new__(system_test.Suite)
+        suite.executor = 'http://example.test'
+        with mock.patch.object(system_test.time, 'sleep'), mock.patch.object(system_test, 'request', side_effect=[OSError('not ready'), {'data': {}}]) as request:
+            self.assertEqual(suite.graph('{ __schema { queryType { name } } }', read_only=True), {'data': {}})
+            self.assertEqual(request.call_count, 2)
+        with mock.patch.object(system_test, 'request', side_effect=OSError('uncertain response')) as request:
+            with self.assertRaises(OSError):
+                suite.graph('mutation { createRun { id } }')
+            self.assertEqual(request.call_count, 1)
+
     def test_first_failure_collects_cleanup_and_stops(self):
         with tempfile.TemporaryDirectory() as directory:
             suite = object.__new__(system_test.Suite)

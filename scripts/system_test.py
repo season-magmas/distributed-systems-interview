@@ -174,7 +174,7 @@ class Suite:
             assert not self.graph('{ __schema { queryType { name } mutationType { name } } }').get('errors'), 'GraphQL not ready'
         self.snapshot('ready')
 
-    def graph(self, query, variables=None):
+    def graph(self, query, variables=None, *, read_only=False):
         return request(self.executor + '/graphql', {'query': query, 'variables': variables or {}})
 
     def create(self, workflow=None):
