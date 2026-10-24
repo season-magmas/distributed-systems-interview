@@ -18,6 +18,12 @@ The detailed design and interview decisions are in `ai/003-plan-part-1.md` throu
 * Use Sol to implement the plan as above.
 * Taking a break while Sol gets busy.
 
+## Testing
+* Manual testing using provided acceptance.sh test and chaos.sh with multiple concurrent workflows in progress
+
+## Extension
+* Added simple UI to aid testing and verify sane outputs
+
 ## 1. Topology and state
 
 ```text
