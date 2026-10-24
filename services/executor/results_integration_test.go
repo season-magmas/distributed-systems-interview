@@ -178,3 +178,23 @@ func TestIntegrationDataLossRetainsPhysicalSuccess(t *testing.T) {
 		t.Fatal("physical success rewritten as failure")
 	}
 }
+
+func TestIntegrationResultConsumerRetriesBindFailureUntilCancelled(t *testing.T) {
+	e, parent := integrationExecutor(t)
+	e.nc.Close()
+	ctx, cancel := context.WithCancel(parent)
+	defer cancel()
+	done := make(chan struct{})
+	go func() { e.resultLoop(ctx); close(done) }()
+	select {
+	case <-done:
+		t.Fatal("result consumer silently exited on initial binding failure")
+	case <-time.After(50 * time.Millisecond):
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("result consumer ignored cancellation")
+	}
+}
