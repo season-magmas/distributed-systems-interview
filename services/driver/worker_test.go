@@ -20,6 +20,7 @@ type memoryStore struct {
 	failures int
 }
 
+func (m *memoryStore) Ref(key string) string { return "s3://test/" + key }
 func (m *memoryStore) Exists(_ context.Context, k string) (bool, error) {
 	_, ok := m.objects[k]
 	return ok, nil

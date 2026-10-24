@@ -15,6 +15,7 @@ import (
 )
 
 type objectStore interface {
+	Ref(string) string
 	Put(context.Context, string, []byte) (string, error)
 	Get(context.Context, string) ([]byte, error)
 	Exists(context.Context, string) (bool, error)
@@ -214,19 +215,7 @@ func (w *worker) storeMeasurement(ctx context.Context, job *durableJob, x *lab.E
 			return errors.New("measurement hash conflict")
 		}
 		x.DataState = lab.Stored
-		x.DataRef = ""
-		for _, old := range job.Report.Executions {
-			if old.ID == x.ID && old.DataRef != "" {
-				x.DataRef = old.DataRef
-			}
-		}
-		if x.DataRef == "" {
-			ref, err := w.store.Put(ctx, key, b)
-			if err != nil {
-				return err
-			}
-			x.DataRef = ref
-		}
+		x.DataRef = w.store.Ref(key)
 		return nil
 	}
 	if len(job.Bytes) == 0 {
