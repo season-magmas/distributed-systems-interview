@@ -7,7 +7,7 @@ RUN go build -o /out/driver ./services/driver
 
 FROM alpine:3.20
 RUN adduser -D -u 10001 app \
- && mkdir /ledger && chown app:app /ledger
+ && mkdir /ledger /spool && chown app:app /ledger /spool
 USER app
 COPY --from=build /out/driver /usr/local/bin/driver
 EXPOSE 7000

@@ -108,6 +108,7 @@ services:
       - PRODUCES_DATA=false
     volumes:
       - ledger:/ledger
+      - liquid-handler-1-spool:/spool
     depends_on: &driver-deps
       nats: {condition: service_healthy}
       storage: {condition: service_healthy}
@@ -140,6 +141,7 @@ services:
       - PRODUCES_DATA=false
     volumes:
       - ledger:/ledger
+      - incubator-1-spool:/spool
     depends_on: *driver-deps
     networks:
       lab-network:
@@ -167,6 +169,7 @@ services:
       - PRODUCES_DATA=true
     volumes:
       - ledger:/ledger
+      - plate-reader-1-spool:/spool
     depends_on: *driver-deps
     networks:
       lab-network:
@@ -178,6 +181,9 @@ volumes:
   nats_data:
   storage_data:
   ledger:
+  liquid-handler-1-spool:
+  incubator-1-spool:
+  plate-reader-1-spool:
 
 networks:
   lab-network:
