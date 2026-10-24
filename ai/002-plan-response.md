@@ -1,8 +1,8 @@
 # Proposed implementation plan
 
 Status: proposed for discussion, 2026-10-24. Implementation has not started.
-D1–D5 and D7 are agreed as detailed in `003-plan-part-1.md` and
-`003-plan-part-2.md`. Other recommendations remain proposals. We will review and refine the steps
+D1–D7 are agreed as detailed in `003-plan-part-1.md`,
+`003-plan-part-2.md`, and `003-plan-part-3.md`. Other recommendations remain proposals. We will review and refine the steps
 in order before proceeding to implementation.
 
 ## Objective and constraints
@@ -46,7 +46,7 @@ exclusive across all runs, not just within one workflow.
 | D3 | How should clients follow runs? | GraphQL queries and mutations with polling initially | Subscriptions improve responsiveness but add connection and replay semantics | Agreed: polling for simplicity |
 | D4 | What should cancellation mean? | Stop authorizing new work, reconcile already dispatched work, preserve its actual outcomes, and settle cancellation after active work is accounted for | Immediate terminal cancellation is faster to report but can hide continuing physical work | Agreed; detailed in part 1 |
 | D5 | What deployment scope do we support? | One executor and one adapter per device initially, with concurrent runs and durable recovery | Multiple active instances require ownership/fencing design, especially around physical execution | Agreed: single executor and driver per device; durable local spool |
-| D6 | How should driver death be injected? | Extend `chaos.sh kill` to the existing driver allowlist, preserving executor behavior | A companion helper avoids editing the supplied script but splits fault injection across tools | Review in step 3 |
+| D6 | How should driver death be injected? | Extend `chaos.sh kill` to the existing driver allowlist, preserving executor behavior | A companion helper avoids editing the supplied script but splits fault injection across tools | Agreed: extend chaos.sh; isolated test resources; routine plus extended suites |
 | D7 | How should uncertainty appear in the fixed HTTP model? | Explicit error reasons and conservative status mapping; expose execution and data state separately in GraphQL | Leaving unresolved work running avoids overstating failure but needs a clear operational resolution path | Agreed: unresolved work stays running with explicit recovery error |
 
 Record each answer here with its rationale. Carry agreed decisions and eventual
@@ -253,8 +253,8 @@ User decisions recorded on 2026-10-24:
 D4 is agreed: cancellation stops new work and settles outstanding work while
 preserving actual outcomes. Part 1 is specified in `003-plan-part-1.md`. D7 is
 agreed: unresolved work stays running. D5 is agreed: one executor and one driver
-per device, with a durable local spool; see `003-plan-part-2.md`. D6 remains queued
-for part 3. These decisions authorize
+per device, with a durable local spool; see `003-plan-part-2.md`. D6 is agreed: extend `chaos.sh` to kill drivers. Part 3 specifies test-owned
+resource cleanup and a routine suite plus an extended suite. These decisions authorize
 plan refinement; implementation still follows the requested step-by-step review.
 
 Validation for this document: repository/source review and whitespace checks only.

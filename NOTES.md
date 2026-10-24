@@ -31,7 +31,8 @@ design intentions and assumptions.
 | Data durability | Persist captured bytes locally, then verify stored measurement; irrecoverably lost bytes fail the step without automatic re-read | Re-read after data loss | The fixed instrument cannot guarantee durable handoff of every measurement |
 
 Detailed planning contracts: `ai/003-plan-part-1.md` and
-`ai/003-plan-part-2.md`. These describe planned behavior, not tested guarantees.
+`ai/003-plan-part-2.md`, and `ai/003-plan-part-3.md`. These describe planned
+behavior, not tested guarantees.
 Implementation details within the specifications remain subject to review.
 
 ## 3. GraphQL interface
@@ -47,6 +48,11 @@ Implementation details within the specifications remain subject to review.
 ## 4. Validation and fault injection
 
 No implementation checks or fault experiments have been recorded yet.
+
+Agreed test strategy: extend `scripts/chaos.sh` to kill/restart drivers, create
+and clean isolated test-owned resources while retaining diagnostics, and provide
+a routine suite plus an extended suite. See `ai/003-plan-part-3.md` for scenarios,
+independent assertions, timeout rules, and artifact requirements.
 
 | Scenario | Exact command, seed, and configuration | Observed API, ledger, and data results | Fix and retest |
 | --- | --- | --- | --- |
