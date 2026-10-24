@@ -220,3 +220,22 @@ func TestWorkerRecoversVerifiedObjectWithoutAnotherWrite(t *testing.T) {
 		t.Fatalf("verified object could not recover lost upload response: %+v %v", r, err)
 	}
 }
+
+func TestWorkerSpoolEvidencePreventsReexecutionWithMissingLedger(t *testing.T) {
+	w, c := testWorker(t, false)
+	now := time.Now().UTC()
+	evidence := lab.Report{Version: lab.Version, ID: "report-job-1-2", Command: c, Revision: 2, Executions: []lab.Execution{{ID: "previous-execution", Outcome: "completed", StartedAt: now, FinishedAt: &now, DataState: lab.Pending}}}
+	if err := w.spool.Save(c.JobID, durableJob{Command: c, Report: evidence, Bytes: []byte("captured bytes")}); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := w.run(ctx, c, func(r lab.Report) error { return nil })
+	if err == nil || len(w.inst.Status().Executions) != 0 {
+		t.Fatal("ignored durable physical evidence and started a replacement execution")
+	}
+	var saved durableJob
+	if err = w.spool.Load(c.JobID, &saved); err != nil || saved.Report.Executions[0].ID != "previous-execution" {
+		t.Fatal("discarded original physical evidence")
+	}
+}
