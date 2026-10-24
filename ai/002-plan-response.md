@@ -43,7 +43,7 @@ exclusive across all runs, not just within one workflow.
 | --- | --- | --- | --- | --- |
 | D1 | How should commands and results travel? | Durable JetStream delivery, plus a Postgres transactional outbox | Core NATS with persisted reconciliation reduces broker setup but needs explicit recovery for every lost request/reply | Agreed: JetStream and Postgres outbox |
 | D2 | When may physical work repeat? | Bounded retries with exponential delays, starting at 0.5 seconds and doubling to an 8-second cap, with a recovery window exceeding the configured hang duration; proposed eligibility is confirmed retryable failures | Stop after every failure for simplicity, or explicitly permit safe-device re-execution with a new attempt and full history | Agreed: three physical attempts; retry confirmed hangs on safe devices; see part 1 |
-| D3 | How should clients follow runs? | GraphQL queries and mutations with polling initially | Subscriptions improve responsiveness but add connection and replay semantics | Agreed: polling for simplicity |
+| D3 | How should clients follow runs? | Read-only GraphQL queries with polling; existing HTTP API controls runs | Subscriptions improve responsiveness but add connection and replay semantics | Agreed: polling for simplicity |
 | D4 | What should cancellation mean? | Stop authorizing new work, reconcile already dispatched work, preserve its actual outcomes, and settle cancellation after active work is accounted for | Immediate terminal cancellation is faster to report but can hide continuing physical work | Agreed; detailed in part 1 |
 | D5 | What deployment scope do we support? | One executor and one adapter per device initially, with concurrent runs and durable recovery | Multiple active instances require ownership/fencing design, especially around physical execution | Agreed: single executor and driver per device; durable local spool |
 | D6 | How should driver death be injected? | Extend `chaos.sh kill` to the existing driver allowlist, preserving executor behavior | A companion helper avoids editing the supplied script but splits fault injection across tools | Agreed: extend chaos.sh; isolated test resources; routine plus extended suites |
@@ -218,19 +218,20 @@ specific remaining limitation is documented with evidence.
 
 ## Step 6 — Add the GraphQL interface
 
-Agreed: expose attempts and data state, keep separate create/start/cancel
-mutations, and use an unpaginated run list for simplicity. See
+Agreed: expose attempts and data state through read-only GraphQL, using an
+unpaginated run list for simplicity. Create/start/cancel remain on the existing
+HTTP API; this supersedes the earlier GraphQL mutation proposal. See
 `003-plan-part-6.md` for the proposed schema, polling, and resolver contracts.
-Operations include workflows, run lookup, run listing, and the three mutations. Expose steps,
+GraphQL queries include workflows, run lookup, and run listing. Expose steps,
 dependencies, attempts, physical outcomes, timestamps, errors, and data references
 so clients can distinguish execution success from data availability.
 
-Use the same application operations as HTTP. Decide nullability, error handling,
+Read the same persisted application record as HTTP. Decide nullability, error handling,
 unpaginated listing, and polling behavior (D3); subscriptions are out of scope.
-Test schema behavior, mutation races, and consistency with the HTTP record.
+Test schema behavior, rejection of mutations, and consistency with HTTP actions.
 
-Milestone: scientists can inspect the record and tools can start and follow runs
-through `/graphql` on the existing executor port.
+Milestone: scientists can inspect the record and tools can follow runs through
+`/graphql` on the existing executor port, using HTTP to create/start/cancel runs.
 
 ## Step 7 — Finish evidence and submission notes
 

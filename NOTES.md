@@ -8,6 +8,7 @@ design intentions and assumptions.
 ## Plan
 * Use Astra to help create a high level plan. Asking me question on how we should proceed. These are captured in ai/002-plan-response.md.
 * Each part was then planned in detailed using a simple Q/A process. These are captured in ai/003-plan-part-X.md.
+  * Rejected suggested use of graphql mutations as we already have existing HTTP methods and want to keep things as simple as possible.
 
 ## 1. Topology
 
@@ -39,8 +40,9 @@ Implementation details within the specifications remain subject to review.
 ## 3. GraphQL interface
 
 - Planned schema and resolver contract: `ai/003-plan-part-6.md`; source pending implementation.
-- Agreed: expose attempts and data state; separate create/start/cancel mutations;
-  unpaginated run listing and run lookup by ID. Clients poll for progress.
+- Agreed: read-only GraphQL exposes attempts and data state, unpaginated run
+  listing, and run lookup by ID. Clients poll for progress and use the existing
+  HTTP API to create/start/cancel runs. This supersedes the mutation proposal.
   These choices keep the initial interface simple; subscriptions are out of scope.
 - Status, error, nullability, and data-reference semantics: TODO
 - Why this shape suits scientists and tools: TODO

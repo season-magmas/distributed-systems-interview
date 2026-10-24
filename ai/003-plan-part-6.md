@@ -7,8 +7,8 @@ No GraphQL implementation or runtime validation has been performed.
 
 - Expose attempt history and measurement data state alongside logical run/step
   statuses so a successful physical read and lost bytes remain distinguishable.
-- Keep separate `createRun`, `startRun`, and `cancelRun` mutations, matching the
-  existing application operations. Keep the interface simple.
+- GraphQL is read-only. Create, start, and cancel runs through the existing HTTP
+  API. This supersedes the earlier choice to duplicate those operations as mutations.
 - Return an unpaginated run list. No cursors, connection types, filters, or extra
   list controls are required initially.
 - Clients poll a run by ID for progress. Subscriptions are outside the scope.
@@ -33,12 +33,6 @@ type Query {
   workflows: [Workflow!]!
   runs: [Run!]!
   run(id: ID!): Run
-}
-
-type Mutation {
-  createRun(workflowName: String): Run
-  startRun(id: ID!): Run
-  cancelRun(id: ID!): Run
 }
 
 type Workflow {
@@ -147,35 +141,31 @@ Unresolved work remains `RUNNING`, with `recoveryError` and `dispatchPaused` mak
 the reason visible. An accepted cancellation can likewise return a running record
 with `cancellationRequested = true` while authorized work settles.
 
-## Mutation semantics
+## Existing HTTP operations
 
-Resolve mutations through the same application operations as HTTP. Reuse workflow
-loading/default-selection behavior rather than making GraphQL a second scheduler.
+Tools use the existing HTTP API to control runs, then read the richer record
+through GraphQL. This combination satisfies run creation and progress tracking
+without a second write interface.
 
-| Operation | Behavior |
+| Operation | Existing endpoint |
 | --- | --- |
-| `createRun` | Load the current workflow definition and create a pending run; omitted, null, or empty workflow name selects the configured default |
-| `startRun` | Start a pending run using durable authorization; repeated calls never restart physical work or revive a terminal run |
-| `cancelRun` | Persist cancellation intent and return the current record; idempotent, with settlement governed by part 1 |
+| Create a run | `POST /runs`, with optional `workflow_name` in the JSON body |
+| Start a run | `POST /runs/{id}/start` |
+| Request cancellation | `POST /runs/{id}/cancel` |
 
-Each mutation returns the persisted current run view, which can still be pending
-or running; it does not wait for physical execution to finish. Unknown IDs and
-unknown workflow names return a null mutation field plus an explanatory GraphQL
-error. Keep operation fields nullable so ordinary domain failures do not require
-extra payload unions or wrapper types.
+Preserve existing HTTP behavior and the part 1 cancellation/recovery contract.
+Read the returned run ID after creation and use it for GraphQL polling. An accepted
+cancellation may still appear running while authorized work settles.
 
-Creating a run is not idempotent: each successful call creates a new run, matching
-HTTP behavior. Document that clients must not blindly retry an uncertain create
-response. A request-id/idempotency-key API is outside the initial scope.
-
-Use GraphQL errors for invalid operations, missing mutation targets, and backend
-failures. Keep internal SQL, filesystem paths, and raw dependency errors in server
-logs. Runtime instrument failures are record fields, not GraphQL execution errors.
+The GraphQL schema has no mutation root. Reject mutation operations through schema
+validation. Queries never authorize work or change run state. Backend read failures
+produce GraphQL errors; instrument failures remain fields in the returned record.
+Keep internal SQL, filesystem paths, and dependency details in server logs.
 
 ## Transport and resolver implementation
 
 Support JSON POST requests with `query`, optional `variables`, and `operationName`.
-No GET mutation support, WebSocket transport, interactive UI, or request batching
+No WebSocket transport, interactive UI, or request batching
 is required. Retain normal schema introspection for tools and tests.
 
 Use a Go GraphQL library for parsing, validation, and execution; do not handwrite
@@ -190,22 +180,14 @@ Queries must never mutate the run record. Keep request cancellation and database
 timeouts effective through resolver calls.
 
 Load each run's steps, attempts, and executions from a consistent database snapshot
-so one response cannot mix a completed step with older pending evidence. Query
-and mutation responses share the read-model builder. Avoid one database lookup
+so one response cannot mix a completed step with older pending evidence.
+GraphQL queries share a consistent read-model builder. Avoid one database lookup
 per field/attempt: batch the nested records for requested runs. Do not introduce
 a generic caching layer; polling should observe newly committed results.
 
 ## Polling examples
 
 ```graphql
-mutation Create($workflow: String) {
-  createRun(workflowName: $workflow) { id status }
-}
-
-mutation Start($id: ID!) {
-  startRun(id: $id) { id status }
-}
-
 query Follow($id: ID!) {
   run(id: $id) {
     id status cancellationRequested dispatchPaused
@@ -221,10 +203,6 @@ query Follow($id: ID!) {
     }
   }
 }
-
-mutation Cancel($id: ID!) {
-  cancelRun(id: $id) { id status cancellationRequested }
-}
 ```
 
 Clients can poll `Follow` about once per second during ordinary work and slow down
@@ -232,22 +210,24 @@ when a run is unresolved or the service is unavailable. Stop ordinary progress
 polling when the run is completed, failed, or cancelled. Polling provides current
 state and persisted attempt history, not a guarantee of seeing every intermediate
 state transition. Use `operationName` when sending a document with multiple named
-operations, such as the example above.
+queries.
 
 ## Tests and completion gate
 
 Test the real GraphQL handler and resolver/database integration:
 
 - Schema validation, variables, enums, nullability, unknown IDs, empty lists, and
-  operation selection; invalid requests must not call mutations.
+  operation selection; mutation requests are rejected without changing state.
 - Workflow defaults and changed configuration versus existing run snapshots.
-- Separate mutation behavior, repeated start/cancel, and cancellation races.
+- HTTP create/start/cancel actions reflected correctly in GraphQL, including
+  repeated start/cancel and cancellation races.
 - Attempts with no physical execution, successful retries, duplicate evidence,
   unresolved recovery, pending uploads, and irrecoverable measurement loss.
 - Consistent snapshots and agreement between HTTP and GraphQL for common fields;
   HTTP/GraphQL observations at different times may legitimately show progress.
-- Real create/start/poll/complete and create/start/cancel paths on the isolated
-  stack, including hash comparison with independent instrument evidence.
+- Real HTTP create/start followed by GraphQL polling to completion, and HTTP
+  cancellation observed through GraphQL, including hash comparison with independent
+  instrument evidence.
 - Unpaginated listing returns all created runs in stable order without truncation.
 
 The interface is complete when those checks pass and the original HTTP acceptance
