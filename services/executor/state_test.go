@@ -51,3 +51,11 @@ func TestNextStepsDependencyAndDeviceExclusion(t *testing.T) {
 		t.Fatal("busy device or dependency bypassed")
 	}
 }
+
+func TestStoppedRunExplainsUnstartedWork(t *testing.T) {
+	r := runRecord{View: RunView{Status: RunRunning, Steps: []StepView{{Name: "failed", Status: StepFailed, Error: ptr("instrument error")}, {Name: "blocked", Status: StepPending}}}, State: map[string]*stepRuntime{"failed": {}, "blocked": {}}}
+	settle(&r)
+	if r.View.Status != RunFailed || r.View.Steps[1].Status != StepCancelled || r.View.Steps[1].Error == nil || r.View.Steps[1].StartedAt != nil {
+		t.Fatalf("blocked work has no truthful explanation: %+v", r.View)
+	}
+}
