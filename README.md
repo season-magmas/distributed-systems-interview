@@ -98,8 +98,8 @@ AI, **include the conversations with your submission** (see Submitting).
 
 | | |
 | --- | --- |
-| `services/executor/service.go` | **Yours.** The executor side. Runs are created and read already; nothing moves them forward |
-| `services/driver/adapter.go` | **Yours.** The driver side. Connects one instrument to the rest of the system |
+| `services/executor/service.go` | **Implemented.** Run persistence, scheduling, recovery, HTTP, GraphQL, and the web UI |
+| `services/driver/adapter.go` | **Implemented.** Serial instrument execution, durable spool, messaging, and data recovery |
 | `db/init.sql` | **Yours.** A starting point, not a design |
 | `services/driver/instrument/instrument.go` | **Fixed.** The instrument. Read it; do not change it |
 | `services/executor/scheduler.go` | Given. A pure function that says which steps should start next |
@@ -196,7 +196,7 @@ curl -s localhost:5002/health    | jq
 curl -s localhost:5002/workflows | jq
 curl -s localhost:7103/status    | jq   # what the plate reader has done
 
-./scripts/acceptance.sh                  # fails until you build something
+./scripts/acceptance.sh                  # happy-path verification
 ```
 
 ## Scientist web UI

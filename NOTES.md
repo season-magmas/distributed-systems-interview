@@ -8,21 +8,25 @@ The detailed design and interview decisions are in `ai/003-plan-part-1.md` throu
 `ai/003-plan-part-7.md`. Reproduction and failure evidence are in
 [`docs/validation.md`](docs/validation.md).
 
-## Plan
+## Personal notes during progress
+
+### Plan
 * Use Astra to help create a high level plan. Asking me question on how we should proceed. These are captured in ai/002-plan-response.md.
 * Each part was then planned in detailed using a simple Q/A process. These are captured in ai/003-plan-part-X.md.
   * Rejected suggested use of graphql mutations as we already have existing HTTP methods and want to keep things as simple as possible.
     * This was then reverted on plan review
 
-## Implementation
+### Implementation
 * Use Sol to implement the plan as above.
 * Taking a break while Sol gets busy.
 
-## Testing
-* Manual testing using provided acceptance.sh test and chaos.sh with multiple concurrent workflows in progress
+### Testing
+* Manual testing using provided acceptance.sh and chaos.sh with multiple concurrrent workflows in progress.
 
-## Extension
-* Added simple UI to aid testing and verify sane outputs
+### Extension
+* Added simple UI to aid testing and verify sane outputs.
+
+---
 
 ## 1. Topology and state
 
@@ -41,6 +45,20 @@ HTTP / GraphQL -> executor -> Postgres run record, attempts, reservations, outbo
                                           |                |
                    LAB_RESULTS / lab.results.<device> ------+
 ```
+
+The concrete message routes are:
+
+| Sender → receiver | Subject | Stream | Durable pull consumer |
+| --- | --- | --- | --- |
+| Executor outbox publisher → liquid-handler driver | `lab.commands.liquid-handler-1` | `LAB_COMMANDS` (`lab.commands.*`) | `liquid-handler-1`, filtered to that exact subject |
+| Executor outbox publisher → incubator driver | `lab.commands.incubator-1` | `LAB_COMMANDS` | `incubator-1`, filtered to that exact subject |
+| Executor outbox publisher → plate-reader driver | `lab.commands.plate-reader-1` | `LAB_COMMANDS` | `plate-reader-1`, filtered to that exact subject |
+| Each driver → executor | `lab.results.<device>` | `LAB_RESULTS` (`lab.results.*`) | `executor`, filtered to `lab.results.*` |
+
+Commands carry run/step/device identity, a stable job ID, attempt number and
+deadlines. Reports carry that command identity, a revision, physical executions,
+recovery information and measurement disposition. Measurement bytes go through
+the driver spool to S3; they are not carried in NATS messages.
 
 - Both streams use file storage, work-queue retention, no age expiry, a 64 MiB
   capacity and rejection of new publications when full. Capacity errors retain
@@ -71,7 +89,46 @@ HTTP / GraphQL -> executor -> Postgres run record, attempts, reservations, outbo
   attempts, execution IDs identify actual physical work, and report IDs/revisions
   identify transport updates. Redelivery never creates another physical attempt.
 
+State ownership is split by responsibility:
+
+| State | Owner and durable location |
+| --- | --- |
+| Run/step status, cancellation intent, retry scheduling, attempts and device reservations | Executor; Postgres |
+| Outbound intent, received-report deduplication and invalid-result evidence | Executor; Postgres outbox, inbox and rejections tables |
+| Commands/results awaiting acknowledgement | NATS; persistent JetStream volume |
+| Captured measurement bytes, replayable reports and invalid-command evidence | Each driver; its own persistent `/spool` volume |
+| Evidence of actual physical work | Fixed instrument; `/ledger/<device>.jsonl` on the persistent ledger volume |
+| Verified measurement objects | Object storage; persistent storage volume, referenced as `s3://bucket/key` |
+| Workflow definitions for new runs | `config/workflows.yaml`; copied into each run's stored step definitions at creation |
+
+Broker publish acknowledgements and consumer acknowledgements serve different
+purposes: a publish acknowledgement permits marking an outbox item published or
+advancing a driver's saved report; it does not mean the receiving application has
+processed it. The driver's consumer acknowledgement follows terminal report
+publication; the executor's follows its database commit. If either consumer ack
+is lost, redelivery reuses saved identity/evidence. Invalid commands are saved in
+the spool before acknowledgement; invalid results are recorded in Postgres before
+acknowledgement. No acknowledgement depends on an HTTP client staying connected.
+
 ## 2. Decisions and alternatives
+
+The main choices and their costs are explicit below. Alternatives are design
+options considered against the exercise constraints, not additional systems that
+were implemented and benchmarked.
+
+| Choice | Alternative | Reason and cost |
+| --- | --- | --- |
+| Durable JetStream command/result queues | Core NATS request/reply | Disconnected consumers and restarts need replay. This adds stream/consumer administration and duplicate delivery handling. |
+| Transactional Postgres outbox | Update the run and publish directly in separate operations | A crash between those operations could lose an authorized command or publish unrecorded work. The outbox adds a publisher loop and publication latency. |
+| Driver-local durable spool | Keep outcomes/measurement bytes only in memory, or require drivers to use Postgres | Bytes and reports must survive driver restarts without giving drivers database access. This adds local storage management and cannot close the fixed instrument's pre-capture crash window. |
+| One durable consumer and serial driver per device, plus persisted reservations | A shared worker pool or several active drivers for one device | Ownership follows the physical one-job-at-a-time constraint. This simplifies safety but provides no active-owner failover or distributed fencing. |
+| Work-queue retention with no age expiry and reject-new capacity limits | Expire/evict older messages or retain an unbounded event log | Unprocessed intent/evidence must not silently disappear. Backpressure is explicit, but a full queue can block progress and acknowledged messages are not a permanent audit log; Postgres/spools retain that history. |
+| Run/step JSON aggregate plus relational attempts/reservations/outbox | Separate normalized run and step tables, or an in-memory scheduler | One aggregate simplifies consistent existing HTTP reads; transactional tables enforce scheduling identities. Aggregate rewrites and a global transition lock limit scale. |
+| Preserve unresolved work as running with paused dispatch | Treat timeout as failure and start replacement work | Ending a wait does not stop physical work. This avoids unsafe repeats but can require indefinite waiting or operator investigation. |
+| Three evidence-backed attempts, with separate recovery polling | Unlimited retries or retry immediately on a timeout/busy reply | Bound physical work and honor instrument retryability. Transient faults can exhaust the budget; observation retries do not count as physical attempts. |
+| Verified original measurement bytes and explicit data loss | Re-read the plate or trust an upload response without verifying data | A later read is a different physical measurement. Hash verification adds storage round trips and data loss can fail a logically required step after physical completion. |
+| Cancellation as persisted intent | Immediately label all active work cancelled | The instrument continues working after its context ends. Actual outcomes must still be recorded, so cancellation is not immediate physical abort. |
+
 
 JetStream makes offline commands/results durable. The Postgres outbox closes the
 state-change/publication gap; Core NATS alone would need custom replay for every
@@ -135,6 +192,30 @@ Enums are uppercase; timestamps are UTC RFC3339 strings. Errors are nullable and
 execution history is retained. Creation is not idempotent; clients must not blindly
 repeat an uncertain create request. Start and cancel are idempotent.
 
+The complete schema, including argument types, enums and nullability, is in
+[`docs/graphql-schema.graphql`](docs/graphql-schema.graphql). It documents the
+programmatic schema rather than introducing a second schema implementation.
+A test compares its object fields, arguments and enums with the running schema
+construction to keep the documentation accurate.
+
+The schema follows the questions a scientist needs to answer:
+
+| Shape or choice | Why it is shaped this way; alternative and cost |
+| --- | --- |
+| `Run → Step → Attempt → Execution → Measurement` | Separate the requested workflow, each authorized job and actual physical evidence. A flat step status would hide retries, duplicate executions or a completed read with lost data. The deeper model requires clients to select the detail they need. |
+| `workflows`, `runs`, and nullable `run(id)` | Discover valid workflow names, browse history, then poll one selected record. A missing ID returns null; an empty list means no records. Lists are unpaginated for this bounded exercise, trading future scale for a simple client. |
+| Separate `createRun`, `startRun`, `cancelRun`, returning a run | Review a pending run before starting equipment and expose cancellation intent explicitly. A combined create-and-start mutation would remove that review point. Shared HTTP application operations avoid divergent execution rules. |
+| `cancellationRequested` and `dispatchPaused` alongside run status | Show intent and unresolved evidence without inventing a new public HTTP status or falsely declaring physical work stopped. A single status field could not convey both dimensions. |
+| Physical `outcome` separate from measurement `state`, hash and reference | Scientists need to distinguish completed physical work from usable stored data. A nullable URI alone would not distinguish pending upload from confirmed loss. `measurement` is null for non-reader executions. |
+| Non-null known identity/status/list fields; nullable evidence fields | IDs and stored status are known; finish times, errors and measurements may not exist yet. Empty attempt/execution lists mean no such evidence is recorded, not proof that no physical work occurred. Synthetic timestamps or placeholder executions would overstate knowledge. |
+| Enums, UTC RFC3339 timestamp strings and ID scalars | Give clients stable vocabulary and portable timestamps without extra custom scalar machinery. Strings do not provide schema-level date validation; local formatting is the client's responsibility. |
+| Polling over ordinary POST requests | The exercise needs current persisted records, not every transient event. Subscriptions would add connection/reconnect and event-delivery state. Polling is simpler but adds read load, a short display delay and no guarantee of observing every intermediate transition. |
+
+For example, a reader execution can have `outcome: COMPLETED` while its
+measurement is `LOST` and the logical step is `FAILED`. These are different facts,
+not conflicting statuses. `retryable` reflects the instrument's assessment for
+failed/hung work; null on other outcomes does not grant permission to retry.
+
 ```graphql
 mutation Create { createRun { id status } }
 mutation Start($id: ID!) { startRun(id: $id) { id status } }
@@ -197,7 +278,72 @@ results, timing, segment references and retained failed attempts, and
 [`docs/validation-evidence/`](docs/validation-evidence/) for selected portable logs
 and the three-attempt long-hang ledger. Raw artifacts remain under `artifacts/`.
 
+The following are observed results from that campaign, not new fault runs made
+while writing this note. The commands recreate disposable test-owned stacks; the
+runner waits for active physical work before injecting process/network faults.
+
+| Command / injected fault | Settings | What was observed |
+| --- | --- | --- |
+| `./scripts/system-test.sh --scenario kill:plate-reader-1` | Kill/restart the reader driver during an active read; instrument faults otherwise zero | The ledger retained one hung read and one later completed read. The run completed and the final stored measurement matched its execution. This validated the confirmed-hang retry policy. |
+| `./scripts/system-test.sh --scenario storage` | Stop storage for 8 seconds during a read | The run completed with exactly one physical reader execution; upload recovery did not re-read the plate. |
+| `./scripts/system-test.sh --scenario storage-driver` | Same storage outage, plus kill/restart the reader driver after 4 seconds | The run completed with one physical read, validating recovery of captured bytes across a driver restart. |
+| `./scripts/system-test.sh --scenario failure:liquid-handler-1` | `FAIL_PCT=100`, `CHAOS_SEED=0` on the liquid handler | One failed liquid-handler execution; the run failed, no repeat dispensing occurred, and dependent steps did not execute. |
+| `./scripts/system-test.sh --scenario hang:incubator-1:long` | Triple Assay; incubator `HANG_PCT=100`, `CHAOS_SEED=0`, `HANG_DURATION=60s`; executor `RECOVERY_TIMEOUT=75s` | Exactly three incubator executions became hung; the run failed after exhausting its safe attempt budget. The entire scenario, including setup, took 228.33 seconds. |
+| `./scripts/system-test.sh --scenario unresolved` | Disconnect the liquid-handler driver for 55 seconds; inspect the record after 47 seconds | The run remained running with an explicit step error while evidence was unavailable. After reconnection it completed with four liquid-handler, two incubator and one reader execution, all completed. |
+| `./scripts/system-test.sh --scenario random:7` (also `random:11`, `random:23`, `random:47`) | Each seed injects faults for 60 seconds under finite concurrent load | Respectively 3, 4, 4 and 2 runs were created and drained; all 13 completed. Ledger checks found no duplicate job execution or device overlap, and measurement hashes matched. This samples fault schedules; it is not exhaustive. |
+
+The corresponding settled run IDs, per-device outcomes, fault settings and the
+intermediate unresolved snapshot are captured in
+[`docs/validation-evidence/fault-observations.json`](docs/validation-evidence/fault-observations.json),
+extracted from the retained raw artifacts. Both complete acceptance workflows
+also passed their seven independent checks; their output is committed under
+`docs/validation-evidence/`.
+
+Several failures did require changes, rather than merely confirming a policy:
+
+| Failure observed during implementation | What changed because of it |
+| --- | --- |
+| A synthetic terminal reader report claimed stored data without a hash/reference; the executor could accept unproven success | Reject and durably record that report before it can complete the step or unlock dependents. Covered by `TestIntegrationRejectUnprovenSuccess` and the dependent-dispatch gate test. |
+| Recovery deadlines did not grow with longer configured work/hangs | Derive the driver's recovery window from at least `max(normal duration, hang duration) + 15s`; retain bounded observation backoff. Unit coverage checks the duration boundary; the real 60-second hang case above exercises the result. |
+| Recovering an already verified object still attempted another PUT; a failed redundant write could also produce an empty reference | Recover the S3 reference from the verified existing object without rewriting it. Covered by `TestWorkerRecoversVerifiedObjectWithoutAnotherWrite`. |
+| A recovered terminal run could keep an old uncertainty pause | Clear resolved uncertainty when settling terminal evidence. Covered by `TestIntegrationLateEvidenceClearsUncertainty`. |
+| Missing ledger evidence could allow a spool's existing physical evidence to be replaced | Preserve the spool and report the conflict without authorizing replacement work. Covered by `TestWorkerSpoolEvidencePreventsReexecutionWithMissingLedger`. |
+| Postgres readiness could detect its temporary init server, and restarted containers could receive different host ports | Fix the test harness: TCP readiness and stable assigned ports. These were harness defects, not instrument faults. |
+| The first two final-campaign invocations stopped on client connection/readiness errors | Fix bounded read retries and retry only provable pre-send connection failures; never replay a sent mutation automatically. Retain the passing prefix and explicitly resume remaining scenarios, as recorded above. |
+
+Focused crash-window tests complement the Docker campaign. For example,
+`TestWorkerLostBytesDoesNotReread` deliberately discards the returned bytes after
+physical measurement, then checks for `COMPLETED` physical evidence, `LOST` data,
+and exactly one execution. That simulates the handoff gap; it is not an observed
+OS kill at a precisely timed instruction. `TestIntegrationOutboxFailureRollsBackAuthorization`
+injects a database trigger failure and checks that authorization rolls back with
+the failed outbox insertion. Reproduce these focused checks with:
+
+```sh
+go test ./services/driver -run 'TestWorker(LostBytesDoesNotReread|RecoversVerifiedObjectWithoutAnotherWrite|SpoolEvidencePreventsReexecutionWithMissingLedger)' -count=1
+./scripts/system-test.sh --scenario integration
+```
+
 ## 5. Limits and unproven behavior
+
+The boundaries have different causes; they are not all claims of completed
+reliability work:
+
+| Boundary | Was it deliberate, and what remains unproven? |
+| --- | --- |
+| Physical measurement → durable spool handoff | A limitation of the fixed instrument interface. Reporting confirmed loss instead of silently re-reading is deliberate; lossless capture is not achieved. Focused tests simulate the missing-byte window, rather than proving every process-kill timing. |
+| One executor and one driver per device | Deliberate scope agreed during planning. Durable reservations/local locks protect this deployment; safe multiple active owners, distributed fencing and automatic HA failover were not implemented or tested. |
+| Intact persistent volumes and normal filesystem durability | Recovery is conditional on these assumptions. Process restarts were tested; actual host power loss, faulty storage, lost volumes and disaster recovery were not established. Sync/rename and corruption checks do not prove survival under all storage failures. |
+| Indefinitely unresolved work | Deliberate preference for truthful uncertainty over unsafe replacement execution. Late evidence recovery was tested; guaranteed eventual completion and an operator repair procedure were not delivered. |
+| Finite capacity, retained history and unpaginated queries | Deliberate exercise simplifications. Spool-capacity refusal has focused coverage, but long-running production retention, sustained overload and large-history performance were not demonstrated. |
+| HTTP status vocabulary and logical step intervals | Deliberate compatibility boundary. A logical interval can include retries/backoff; GraphQL exposes individual physical executions. The existing HTTP shape cannot express every evidence distinction. |
+| Finite fault campaign and separate UI validation | A practical testing boundary. The 33 cases cover selected schedules at the recorded pre-UI source; later UI browser/acceptance checks are separate. Neither result proves all interleavings, every future change, or mathematical exactly-once execution. |
+
+The intended guarantee is a conservative, evidence-based record for the agreed
+single-owner deployment and intact storage, exercised by the recorded tests. It
+is not a guarantee that every run finishes or every physical measurement survives.
+Where evidence is insufficient, the implementation must preserve uncertainty
+instead of inventing a successful outcome or authorizing unsafe repetition.
 
 - The fixed instrument cannot atomically transfer measured bytes into the spool.
   A crash after physical measurement but before capture can irrecoverably lose
@@ -283,3 +429,17 @@ This follow-up took approximately 12 minutes, including browser checks, local
 Docker setup and documentation, in addition to the earlier implementation time.
 The prompt and a partial activity record are in `ai/006-web-ui.md` and
 `ai/006-web-ui-response.md`; repeated progress and raw tool output are omitted.
+
+## 10. Submission review
+
+[`docs/submission-review.md`](docs/submission-review.md) maps README requirements
+to implementation and evidence. Current Go tests/vet, Node.js UI tests and Python
+harness tests passed again; the historical fault/browser campaigns were reviewed,
+not rerun. Fixed files and public Go parameter/result types were checked against
+the original import. The review took a few additional minutes.
+
+Personal planning/review time and personal exercise feedback have been requested
+to finish the total-time and feedback write-up. The existing AI records disclose
+their omissions; the user can retain that disclosure or add a fuller export/link.
+This review is recorded in `ai/007-finish-response.md`. GitHub publication remains
+the user's submission step.

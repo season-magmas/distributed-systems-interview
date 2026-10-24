@@ -1,0 +1,111 @@
+# Documentation of the programmatic schema in services/executor/graphql.go.
+# String timestamps are UTC RFC3339; nullable evidence is absent until known.
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  workflows: [Workflow!]!
+  runs: [Run!]!
+  run(id: ID!): Run
+}
+
+type Mutation {
+  createRun(workflowName: String): Run
+  startRun(id: ID!): Run
+  cancelRun(id: ID!): Run
+}
+
+type Workflow {
+  name: String!
+  isDefault: Boolean!
+  steps: [WorkflowStep!]!
+}
+
+type WorkflowStep {
+  name: String!
+  deviceId: ID!
+  dependsOn: [String!]!
+}
+
+type Run {
+  id: ID!
+  workflowName: String!
+  status: RunStatus!
+  createdAt: String!
+  startedAt: String
+  finishedAt: String
+  cancellationRequested: Boolean!
+  dispatchPaused: Boolean!
+  steps: [Step!]!
+}
+
+type Step {
+  name: String!
+  deviceId: ID!
+  dependsOn: [String!]!
+  status: StepStatus!
+  startedAt: String
+  finishedAt: String
+  error: String
+  dataRef: String
+  attempts: [Attempt!]!
+}
+
+type Attempt {
+  jobId: ID!
+  number: Int!
+  authorizedAt: String!
+  dispatchDeadline: String!
+  recoveryDeadline: String
+  recoveryError: String
+  executions: [Execution!]!
+}
+
+type Execution {
+  id: ID!
+  outcome: PhysicalOutcome!
+  startedAt: String!
+  finishedAt: String
+  error: String
+  retryable: Boolean
+  measurement: Measurement
+}
+
+type Measurement {
+  state: DataState!
+  sha256: String
+  dataRef: String
+  error: String
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum StepStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PhysicalOutcome {
+  RUNNING
+  COMPLETED
+  FAILED
+  HUNG
+}
+
+enum DataState {
+  NOT_APPLICABLE
+  PENDING
+  STORED
+  LOST
+}

@@ -1,0 +1,656 @@
+{
+  "source": "Retained campaign snapshots; extracted for documentation, not new test executions.",
+  "scenarios": [
+    {
+      "scenario": "kill:plate-reader-1",
+      "scenario_seconds_including_setup": 67.02,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/kill:plate-reader-1",
+      "fault_settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        }
+      },
+      "runs": [
+        {
+          "id": "run-35f06eff5061981c5fa53da4",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "hung": 1,
+              "completed": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "storage",
+      "scenario_seconds_including_setup": 77.81,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/storage",
+      "fault_settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        }
+      },
+      "runs": [
+        {
+          "id": "run-4ca5703493744ab88a4e8cf3",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "failure:liquid-handler-1",
+      "scenario_seconds_including_setup": 31.88,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/failure:liquid-handler-1",
+      "fault_settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "100",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        }
+      },
+      "runs": [
+        {
+          "id": "run-51c6ad0b3cbf909b7e212f5e",
+          "status": "failed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "failed": 1
+            },
+            "incubator-1": {},
+            "plate-reader-1": {}
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "random:7",
+      "scenario_seconds_including_setup": 108.17,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/random:7",
+      "fault_settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        }
+      },
+      "runs": [
+        {
+          "id": "run-5a25c6679db618712a7eb68a",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        },
+        {
+          "id": "run-6a613b7832678b1f3a80c023",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        },
+        {
+          "id": "run-3830290a2d828b9cdb54f346",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "unresolved",
+      "scenario_seconds_including_setup": 88.86,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/unresolved",
+      "fault_settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        }
+      },
+      "runs": [
+        {
+          "id": "run-f5a13441cc3a497c01789611",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        }
+      ],
+      "intermediate_runs": {
+        "run-f5a13441cc3a497c01789611": {
+          "id": "run-f5a13441cc3a497c01789611",
+          "workflow_name": "PCR Amplification",
+          "status": "running",
+          "created_at": "2026-10-24T17:36:35.821300888Z",
+          "started_at": "2026-10-24T17:36:35.824398721Z",
+          "finished_at": null,
+          "steps": [
+            {
+              "name": "fill_sample_plate",
+              "device_id": "liquid-handler-1",
+              "depends_on": [],
+              "status": "running",
+              "started_at": null,
+              "finished_at": null,
+              "error": "recovery unresolved: deadline exceeded",
+              "data_ref": null
+            },
+            {
+              "name": "incubate_samples",
+              "device_id": "incubator-1",
+              "depends_on": [
+                "fill_sample_plate"
+              ],
+              "status": "pending",
+              "started_at": null,
+              "finished_at": null,
+              "error": null,
+              "data_ref": null
+            },
+            {
+              "name": "fill_reagent_plate",
+              "device_id": "liquid-handler-1",
+              "depends_on": [
+                "fill_sample_plate"
+              ],
+              "status": "pending",
+              "started_at": null,
+              "finished_at": null,
+              "error": null,
+              "data_ref": null
+            },
+            {
+              "name": "fill_buffer_plate",
+              "device_id": "liquid-handler-1",
+              "depends_on": [
+                "fill_sample_plate"
+              ],
+              "status": "pending",
+              "started_at": null,
+              "finished_at": null,
+              "error": null,
+              "data_ref": null
+            },
+            {
+              "name": "warm_reagent_plate",
+              "device_id": "incubator-1",
+              "depends_on": [
+                "fill_reagent_plate"
+              ],
+              "status": "pending",
+              "started_at": null,
+              "finished_at": null,
+              "error": null,
+              "data_ref": null
+            },
+            {
+              "name": "combine",
+              "device_id": "liquid-handler-1",
+              "depends_on": [
+                "incubate_samples",
+                "warm_reagent_plate",
+                "fill_buffer_plate"
+              ],
+              "status": "pending",
+              "started_at": null,
+              "finished_at": null,
+              "error": null,
+              "data_ref": null
+            },
+            {
+              "name": "read_plate",
+              "device_id": "plate-reader-1",
+              "depends_on": [
+                "combine"
+              ],
+              "status": "pending",
+              "started_at": null,
+              "finished_at": null,
+              "error": null,
+              "data_ref": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "scenario": "storage-driver",
+      "scenario_seconds_including_setup": 64.83,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/storage-driver",
+      "fault_settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        }
+      },
+      "runs": [
+        {
+          "id": "run-4c5feba9a9a102e5b070de57",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "hang:incubator-1:long",
+      "scenario_seconds_including_setup": 228.33,
+      "artifact_directory": "artifacts/lab-test-20261024t174309z-42111/hang:incubator-1:long",
+      "fault_settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "100",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "60s"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "executor": {
+          "RECOVERY_TIMEOUT": "75s"
+        }
+      },
+      "runs": [
+        {
+          "id": "run-a76007b0012741c275efdca5",
+          "status": "failed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 2
+            },
+            "incubator-1": {
+              "hung": 3
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "random:11",
+      "scenario_seconds_including_setup": 100.79,
+      "artifact_directory": "artifacts/lab-test-20261024t174309z-42111/random:11",
+      "fault_settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        }
+      },
+      "runs": [
+        {
+          "id": "run-f0669775a1c6402ffb4b0498",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        },
+        {
+          "id": "run-5716ed8eb82ccecd29f079db",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        },
+        {
+          "id": "run-77125a7c57f31b675f6dc3e1",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        },
+        {
+          "id": "run-71bdaccc0162dce98af2bfd2",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "random:23",
+      "scenario_seconds_including_setup": 92.54,
+      "artifact_directory": "artifacts/lab-test-20261024t174309z-42111/random:23",
+      "fault_settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        }
+      },
+      "runs": [
+        {
+          "id": "run-eec8a1b800bc28f4c7cfca11",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        },
+        {
+          "id": "run-74727462b6554bff21c232d1",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        },
+        {
+          "id": "run-deaaf76802825fbcab62f2bd",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        },
+        {
+          "id": "run-cdbe5eab733a33482733ff2b",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "random:47",
+      "scenario_seconds_including_setup": 109.41,
+      "artifact_directory": "artifacts/lab-test-20261024t174309z-42111/random:47",
+      "fault_settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "0",
+          "HANG_PCT": "0",
+          "CHAOS_SEED": "0",
+          "HANG_DURATION": "30s"
+        }
+      },
+      "runs": [
+        {
+          "id": "run-a10d8c0e2f6b586bb39d527e",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        },
+        {
+          "id": "run-3dfab9efa46d0c7f946535a3",
+          "status": "completed",
+          "physical_outcomes": {
+            "liquid-handler-1": {
+              "completed": 4
+            },
+            "incubator-1": {
+              "completed": 2
+            },
+            "plate-reader-1": {
+              "completed": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

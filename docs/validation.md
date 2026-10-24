@@ -111,8 +111,15 @@ active owners, or lossless capture across the instrument-to-spool handoff.
 
 See [validation-results.json](validation-results.json) for per-scenario durations,
 artifact directories, retained failed attempts and the application source proof.
-The application is revision `3df4d08`; subsequent source changes are tests, harness,
-documentation and a direct-dependency annotation without changing versions.
+The fault campaign covered application revision `3df4d08`. Changes through the
+completion of that campaign were tests, harness, documentation and a
+direct-dependency annotation without changing versions. The later web UI adds
+asset serving and browser code; its separate browser, ledger/hash and acceptance
+results are in [web-ui-validation.md](web-ui-validation.md). The 33-scenario
+campaign was not repeated after the UI addition. The source fingerprints in
+`validation-results.json`, including its `current_application_source_sha256`
+field, describe the application at campaign completion, rather than the
+submission HEAD.
 
 ```sh
 ./scripts/system-test.sh --suite extended
