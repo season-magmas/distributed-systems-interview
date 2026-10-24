@@ -96,25 +96,18 @@ func (a *API) createRun(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Read fresh so edits to workflows.yaml take effect without a restart.
-	set, err := LoadWorkflows(a.workflowsPath)
+	rv, err := a.createWorkflowRun(r.Context(), body.WorkflowName)
 	if err != nil {
-		// A broken workflows.yaml is the operator's to fix, so say what is wrong.
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
-	}
-	name := body.WorkflowName
-	if name == "" {
-		name = set.Default()
-	}
-	tmpl, err := set.Get(name)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
-		return
-	}
-	rv, err := a.executor.CreateRun(r.Context(), name, tmpl)
-	if err != nil {
-		writeError(w, err)
+		var invalid invalidWorkflow
+		var config workflowConfigError
+		switch {
+		case errors.As(err, &invalid):
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		case errors.As(err, &config):
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		default:
+			writeError(w, err)
+		}
 		return
 	}
 	writeJSON(w, http.StatusCreated, rv)

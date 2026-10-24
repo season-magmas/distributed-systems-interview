@@ -139,6 +139,10 @@ func (a *API) graphMutation(cancel bool) graphql.FieldResolveFn {
 		return rows[0], nil
 	}
 }
+
+type invalidWorkflow struct{ error }
+type workflowConfigError struct{ error }
+
 func graphError(err error) error {
 	if err == nil {
 		return nil
@@ -146,20 +150,24 @@ func graphError(err error) error {
 	if errors.Is(err, ErrRunNotFound) {
 		return ErrRunNotFound
 	}
+	var invalid invalidWorkflow
+	if errors.As(err, &invalid) {
+		return invalid
+	}
 	log.Printf("graphql: %v", err)
 	return errors.New("operation failed")
 }
 func (a *API) createWorkflowRun(ctx context.Context, name string) (RunView, error) {
 	set, err := LoadWorkflows(a.workflowsPath)
 	if err != nil {
-		return RunView{}, err
+		return RunView{}, workflowConfigError{err}
 	}
 	if name == "" {
 		name = set.Default()
 	}
 	steps, err := set.Get(name)
 	if err != nil {
-		return RunView{}, err
+		return RunView{}, invalidWorkflow{err}
 	}
 	return a.executor.CreateRun(ctx, name, steps)
 }
