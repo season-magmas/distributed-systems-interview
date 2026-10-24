@@ -21,9 +21,9 @@ The user's “Yes” accepts the recommended answers to the three part 1 questio
 Previously agreed: JetStream with a Postgres outbox, bounded exponential delay,
 recovery lasting beyond the configured hang duration, and GraphQL polling.
 
-The detailed status mapping and race rules below are proposed consequences of
-these decisions. D7's uncertainty presentation remains subject to review before
-implementation; it was not explicitly covered by the user's “Yes”.
+The user subsequently confirmed D7: unresolved work stays running, with an
+explicit recovery error and further dispatch paused until evidence arrives.
+Other detailed status mappings and race rules below specify the proposed design.
 
 ## Identities and evidence
 
