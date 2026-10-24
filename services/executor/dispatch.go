@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/automata-tech/distributed-systems-interview/services/common/lab"
@@ -55,7 +56,9 @@ func (e *Executor) schedule(ctx context.Context) error {
 			if r.View.Status != RunRunning {
 				continue
 			}
-			r.Pause = ""
+			if r.Pause != "report evidence conflict" {
+				r.Pause = ""
+			}
 			now := time.Now().UTC()
 			for i := range r.View.Steps {
 				s := &r.View.Steps[i]
@@ -291,6 +294,12 @@ func (e *Executor) applyReport(ctx context.Context, b []byte) error {
 				return reject(ctx, tx, b, "terminal result needs one execution")
 			}
 			x := rep.Executions[0]
+			if x.Outcome != "completed" && x.Outcome != "failed" && x.Outcome != "hung" {
+				return reject(ctx, tx, b, "unknown physical outcome")
+			}
+			if x.Outcome == "completed" && c.Device == "plate-reader-1" && x.DataState == lab.Stored && (len(x.Hash) != 64 || !strings.HasPrefix(x.DataRef, "s3://") || !strings.Contains(x.DataRef, "/executions/"+x.ID+"/")) {
+				return reject(ctx, tx, b, "missing measurement evidence")
+			}
 			if x.Outcome == "running" || x.FinishedAt == nil || (c.Device == "plate-reader-1" && x.Outcome == "completed" && x.DataState != lab.Stored && x.DataState != lab.Lost) {
 				return reject(ctx, tx, b, "unproven terminal report")
 			}
