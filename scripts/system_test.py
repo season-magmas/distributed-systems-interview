@@ -24,6 +24,10 @@ FAULTS = ['LH_FAIL_PCT', 'LH_HANG_PCT', 'INC_FAIL_PCT', 'INC_HANG_PCT', 'PR_FAIL
 TERMINAL = {'completed', 'failed', 'cancelled'}
 
 
+class DialFailure(OSError):
+    """A TCP connection failed before any HTTP request bytes were sent."""
+
+
 def request(url, body=None, json_mode=True):
     data = None if body is None else json.dumps(body).encode()
     deadline = time.monotonic() + 15

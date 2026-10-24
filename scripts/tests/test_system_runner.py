@@ -31,6 +31,12 @@ class RunnerSafetyTests(unittest.TestCase):
                 suite.graph('mutation { createRun { id } }')
             self.assertEqual(request.call_count, 1)
 
+    def test_proven_dial_failure_can_retry_creation(self):
+        failure = system_test.urllib.error.URLError(system_test.DialFailure('connect refused before send'))
+        with mock.patch.object(system_test.time, 'sleep'), mock.patch.object(system_test.urllib.request, 'urlopen', side_effect=[failure, io.BytesIO(b'{"id":"run-1"}')]) as opener:
+            self.assertEqual(system_test.request('http://example.test/runs', {}), {'id': 'run-1'})
+            self.assertEqual(opener.call_count, 2)
+
     def test_first_failure_collects_cleanup_and_stops(self):
         with tempfile.TemporaryDirectory() as directory:
             suite = object.__new__(system_test.Suite)
