@@ -15,6 +15,9 @@ type API struct {
 
 func (a *API) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /{$}", notebookAsset("index.html", "text/html; charset=utf-8"))
+	mux.HandleFunc("GET /ui/app.mjs", notebookAsset("app.mjs", "text/javascript; charset=utf-8"))
+	mux.HandleFunc("GET /ui/style.css", notebookAsset("style.css", "text/css; charset=utf-8"))
 	mux.HandleFunc("/graphql", a.graphHandler())
 	mux.HandleFunc("GET /health", a.health)
 	mux.HandleFunc("GET /workflows", a.listWorkflows)
