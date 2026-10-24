@@ -62,3 +62,37 @@ func TestGraphQLUnknownWorkflowIsActionable(t *testing.T) {
 		t.Fatalf("unhelpful domain error: %s", response.Body.String())
 	}
 }
+
+func TestIntegrationUnpaginatedListingMatchesHTTP(t *testing.T) {
+	e, ctx := integrationExecutor(t)
+	templates := []StepTemplate{{Name: "fill", DeviceID: "liquid-handler-1"}}
+	first, err := e.CreateRun(ctx, "first", templates)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := e.CreateRun(ctx, "second", templates)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := &API{executor: e, workflowsPath: "../../config/workflows.yaml"}
+	response := graphRequest(a, `{runs{id workflowName status}}`)
+	var graph struct {
+		Data   struct{ Runs []struct{ ID string } }
+		Errors []any
+	}
+	if err = json.Unmarshal(response.Body.Bytes(), &graph); err != nil {
+		t.Fatal(err)
+	}
+	if len(graph.Errors) > 0 || len(graph.Data.Runs) != 2 || graph.Data.Runs[0].ID != second.ID || graph.Data.Runs[1].ID != first.ID {
+		t.Fatalf("listing was truncated or reordered: %s", response.Body.String())
+	}
+	w := httptest.NewRecorder()
+	a.Routes().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/runs", nil))
+	var httpRuns []RunView
+	if err = json.Unmarshal(w.Body.Bytes(), &httpRuns); err != nil {
+		t.Fatal(err)
+	}
+	if len(httpRuns) != 2 || httpRuns[0].ID != second.ID || httpRuns[1].ID != first.ID {
+		t.Fatal("HTTP and GraphQL listing disagree")
+	}
+}
