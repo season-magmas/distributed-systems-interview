@@ -31,15 +31,14 @@ class RunnerSafetyTests(unittest.TestCase):
             suite.start = mock.Mock(side_effect=AssertionError('injected scenario failure'))
             suite.exercise = mock.Mock()
             suite.cleanup = mock.Mock(return_value=[])
-            self.assertEqual(suite.run(), 1)
+            with mock.patch("builtins.print"):
+                self.assertEqual(suite.run(), 1)
             self.assertEqual(suite.start.call_count, 1)
             suite.exercise.assert_not_called()
             suite.cleanup.assert_called_once()
             self.assertEqual(suite.results[0]['status'], 'failed')
             self.assertTrue((suite.artifacts / 'results.json').exists())
 
-if __name__ == '__main__':
-    unittest.main()
 
 class RetryOracleTests(unittest.TestCase):
     def test_exhaustion_is_per_step_not_per_device(self):
@@ -47,3 +46,6 @@ class RetryOracleTests(unittest.TestCase):
         system_test.assert_retry_exhaustion(executions)
         with self.assertRaises(AssertionError):
             system_test.assert_retry_exhaustion([{'step_name': 'incubate_samples'}] * 4)
+
+if __name__ == "__main__":
+    unittest.main()

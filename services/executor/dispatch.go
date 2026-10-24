@@ -158,7 +158,10 @@ func (e *Executor) schedule(ctx context.Context) error {
 }
 func (e *Executor) publishLoop(ctx context.Context) {
 	for ctx.Err() == nil {
-		if err := e.publishPending(ctx); err != nil && ctx.Err() == nil {
+		call, cancel := context.WithTimeout(ctx, 5*time.Second)
+		err := e.publishPending(call)
+		cancel()
+		if err != nil && ctx.Err() == nil {
 			log.Printf("outbox: %v", err)
 		}
 		if !lab.Wait(ctx, lab.PollInterval) {
@@ -204,9 +207,19 @@ func (e *Executor) publishPending(ctx context.Context) error {
 	return nil
 }
 func (e *Executor) resultLoop(ctx context.Context) {
-	sub, err := e.js.PullSubscribe(lab.ResultPrefix+"*", "executor", nats.Bind(lab.ResultStream, "executor"))
-	if err != nil {
-		log.Printf("results: %v", err)
+	var sub *nats.Subscription
+	var err error
+	for ctx.Err() == nil {
+		sub, err = e.js.PullSubscribe(lab.ResultPrefix+"*", "executor", nats.Bind(lab.ResultStream, "executor"))
+		if err == nil {
+			break
+		}
+		log.Printf("result bind: %v", err)
+		if !lab.Wait(ctx, time.Second) {
+			return
+		}
+	}
+	if sub == nil {
 		return
 	}
 	defer sub.Unsubscribe()

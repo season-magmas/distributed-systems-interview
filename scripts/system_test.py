@@ -1,5 +1,6 @@
 """Isolated, fail-fast end-to-end checks against independent instrument ledgers."""
 import argparse
+from collections import Counter
 import datetime
 import hashlib
 import json
@@ -52,7 +53,8 @@ def until(check, timeout=120, label='condition'):
 
 
 def assert_retry_exhaustion(executions):
-    assert len(executions) == 3, "retry budget not exhausted"
+    counts = Counter(x["step_name"] for x in executions)
+    assert 3 in counts.values() and max(counts.values()) <= 3, "per-step retry budget not exhausted correctly"
 
 
 def fixture(device, step, kind):
@@ -294,13 +296,13 @@ class Suite:
             request(self.executor + '/runs/' + run + '/cancel', {})
             self.finish(run, 'cancelled')
         elif name.startswith(('failure:', 'hang:')):
-            run = self.create()
             parts = name.split(':')
+            run = self.create('Triple Assay' if parts[-1] == 'long' else None)
             fail = parts[1] == DEVICES[0] or len(parts) > 2
             view = self.finish(run, 'failed' if fail else 'completed')
             if fail and parts[1] != DEVICES[0]:
                 physical = [x for x in self.ledger()[parts[1]]['executions'] if x['run_id'] == run]
-                assert len(physical) == 3, 'persistent retryable failure did not exhaust exactly three attempts'
+                assert_retry_exhaustion(physical)
         elif name.startswith('kill:'):
             service = name.split(':')[1];run = self.create()
             device = service if service in DEVICES else DEVICES[0]
