@@ -2,6 +2,9 @@ package lab
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
+	"regexp"
 	"time"
 )
 
@@ -59,8 +62,67 @@ type Report struct {
 	Terminal         bool        `json:"terminal"`
 }
 
-func SafeID(s string) bool                                     { return false }
-func (c Command) Validate() error                              { return errors.New("not implemented") }
-func Backoff(n int) time.Duration                              { return 0 }
-func CanRetry(device string, attempt int, outcome string) bool { return false }
-func CheckReport(old, next Report) error                       { return errors.New("not implemented") }
+var idPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
+
+func SafeID(s string) bool { return idPattern.MatchString(s) }
+func Supported(device string) bool {
+	for _, d := range Devices {
+		if d == device {
+			return true
+		}
+	}
+	return false
+}
+func (c Command) Validate() error {
+	if c.Version != Version || !Supported(c.Device) || c.Attempt < 1 || c.Attempt > MaxAttempts {
+		return errors.New("invalid command version, device or attempt")
+	}
+	for _, s := range []string{c.ID, c.RunID, c.Step, c.JobID} {
+		if !SafeID(s) {
+			return errors.New("invalid command identity")
+		}
+	}
+	if c.CreatedAt.IsZero() || !c.DispatchDeadline.After(c.CreatedAt) || c.RecoveryTimeout < DispatchTimeout {
+		return errors.New("invalid recovery deadlines")
+	}
+	return nil
+}
+func Backoff(n int) time.Duration {
+	if n < 0 {
+		n = 0
+	}
+	if n > 4 {
+		n = 4
+	}
+	return (500 * time.Millisecond) * time.Duration(1<<n)
+}
+func CanRetry(device string, attempt int, outcome string) bool {
+	return (device == "incubator-1" || device == "plate-reader-1") && attempt < MaxAttempts && attempt > 0 && (outcome == "failed" || outcome == "hung")
+}
+func CheckReport(old, next Report) error {
+	if old.Command.JobID != "" && !reflect.DeepEqual(old.Command, next.Command) {
+		return errors.New("job identity conflict")
+	}
+	if next.Revision <= old.Revision {
+		if reflect.DeepEqual(old, next) {
+			return nil
+		}
+		return errors.New("report revision conflict")
+	}
+	for _, a := range old.Executions {
+		var b *Execution
+		for i := range next.Executions {
+			if next.Executions[i].ID == a.ID {
+				b = &next.Executions[i]
+				break
+			}
+		}
+		if b == nil || !b.StartedAt.Equal(a.StartedAt) || (a.Outcome != "running" && b.Outcome != a.Outcome) || (a.Hash != "" && a.Hash != b.Hash) || (a.FinishedAt != nil && (b.FinishedAt == nil || !a.FinishedAt.Equal(*b.FinishedAt))) || (a.DataState == Stored && (b.DataState != Stored || b.DataRef != a.DataRef)) {
+			return fmt.Errorf("physical evidence conflict: %s", a.ID)
+		}
+	}
+	if old.Terminal && !next.Terminal {
+		return errors.New("terminal report regression")
+	}
+	return nil
+}
