@@ -1,0 +1,317 @@
+{
+  "status": "passed",
+  "completed_at_utc": "2026-10-24T17:56:53.504222+00:00",
+  "passed_scenarios": 33,
+  "application": {
+    "application_revision": "3df4d08",
+    "application_source_sha256": "f6b94cce023d43aca8a25b8d782e76409ef60307dcf49794820872b85617d38b",
+    "current_application_source_sha256": "f6b94cce023d43aca8a25b8d782e76409ef60307dcf49794820872b85617d38b",
+    "normalization": "Go module direct/indirect annotations and requirement order ignored; all module versions and go.sum included",
+    "files": [
+      "config/workflows.yaml",
+      "db/init.sql",
+      "docker-compose.yml",
+      "go.mod",
+      "go.sum",
+      "services/common/lab/durable.go",
+      "services/common/lab/messaging.go",
+      "services/common/lab/protocol.go",
+      "services/common/storage/storage.go",
+      "services/driver/Dockerfile",
+      "services/driver/adapter.go",
+      "services/driver/instrument/instrument.go",
+      "services/driver/main.go",
+      "services/driver/recovery.go",
+      "services/driver/worker.go",
+      "services/executor/Dockerfile",
+      "services/executor/api.go",
+      "services/executor/dispatch.go",
+      "services/executor/graphql.go",
+      "services/executor/main.go",
+      "services/executor/models.go",
+      "services/executor/scheduler.go",
+      "services/executor/service.go",
+      "services/executor/settings.go",
+      "services/executor/workflow.go"
+    ],
+    "fixtures": {
+      "incubator-1": "2",
+      "plate-reader-1": "4"
+    }
+  },
+  "campaign_segments": [
+    {
+      "project": "lab-test-20261024t170950z-27641",
+      "failure": "URLError('http://host.docker.internal:30266/graphql: <urlopen error [Errno 101] Network is unreachable>')"
+    },
+    {
+      "project": "lab-test-20261024t172155z-34040",
+      "failure": "URLError('http://host.docker.internal:55477/runs: <urlopen error [Errno 101] Network is unreachable>')"
+    },
+    {
+      "project": "lab-test-20261024t174309z-42111",
+      "failure": null
+    }
+  ],
+  "execution_note": "Passing prefix retained and remaining scenarios explicitly resumed after test-client-only fixes. All segments use identical application sources and dependency versions; this was not one uninterrupted passing suite invocation.",
+  "results": [
+    {
+      "scenario": "integration",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 34.46,
+      "artifact_directory": "artifacts/lab-test-20261024t170950z-27641/integration"
+    },
+    {
+      "scenario": "happy",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 30.15,
+      "artifact_directory": "artifacts/lab-test-20261024t170950z-27641/happy"
+    },
+    {
+      "scenario": "triple",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 36.65,
+      "artifact_directory": "artifacts/lab-test-20261024t170950z-27641/triple"
+    },
+    {
+      "scenario": "kill:executor",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 40.65,
+      "artifact_directory": "artifacts/lab-test-20261024t170950z-27641/kill:executor"
+    },
+    {
+      "scenario": "disconnect:executor",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 45.54,
+      "artifact_directory": "artifacts/lab-test-20261024t170950z-27641/disconnect:executor"
+    },
+    {
+      "scenario": "disconnect:liquid-handler-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 48.42,
+      "artifact_directory": "artifacts/lab-test-20261024t170950z-27641/disconnect:liquid-handler-1"
+    },
+    {
+      "scenario": "disconnect:incubator-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 40.52,
+      "artifact_directory": "artifacts/lab-test-20261024t170950z-27641/disconnect:incubator-1"
+    },
+    {
+      "scenario": "disconnect:plate-reader-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 41.17,
+      "artifact_directory": "artifacts/lab-test-20261024t170950z-27641/disconnect:plate-reader-1"
+    },
+    {
+      "scenario": "kill:liquid-handler-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 54.3,
+      "artifact_directory": "artifacts/lab-test-20261024t170950z-27641/kill:liquid-handler-1"
+    },
+    {
+      "scenario": "kill:incubator-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 65.3,
+      "artifact_directory": "artifacts/lab-test-20261024t170950z-27641/kill:incubator-1"
+    },
+    {
+      "scenario": "kill:plate-reader-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 67.02,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/kill:plate-reader-1"
+    },
+    {
+      "scenario": "storage",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 77.81,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/storage"
+    },
+    {
+      "scenario": "failure:incubator-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 43.46,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/failure:incubator-1"
+    },
+    {
+      "scenario": "failure:plate-reader-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 45.74,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/failure:plate-reader-1"
+    },
+    {
+      "scenario": "failure:incubator-1:exhaust",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 36.81,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/failure:incubator-1:exhaust"
+    },
+    {
+      "scenario": "failure:liquid-handler-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 31.88,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/failure:liquid-handler-1"
+    },
+    {
+      "scenario": "hang:incubator-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 72.83,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/hang:incubator-1"
+    },
+    {
+      "scenario": "hang:plate-reader-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 72.32,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/hang:plate-reader-1"
+    },
+    {
+      "scenario": "hang:liquid-handler-1",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 61.37,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/hang:liquid-handler-1"
+    },
+    {
+      "scenario": "concurrent",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 39.65,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/concurrent"
+    },
+    {
+      "scenario": "cancel-pending",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 28.82,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/cancel-pending"
+    },
+    {
+      "scenario": "cancel-active",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 26.65,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/cancel-active"
+    },
+    {
+      "scenario": "random:7",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 108.17,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/random:7"
+    },
+    {
+      "scenario": "graphql",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 41.07,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/graphql"
+    },
+    {
+      "scenario": "restart:nats",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 40.6,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/restart:nats"
+    },
+    {
+      "scenario": "restart:postgres",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 41.17,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/restart:postgres"
+    },
+    {
+      "scenario": "unresolved",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 88.86,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/unresolved"
+    },
+    {
+      "scenario": "storage-driver",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 64.83,
+      "artifact_directory": "artifacts/lab-test-20261024t172155z-34040/storage-driver"
+    },
+    {
+      "scenario": "hang:incubator-1:long",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 228.33,
+      "artifact_directory": "artifacts/lab-test-20261024t174309z-42111/hang:incubator-1:long"
+    },
+    {
+      "scenario": "random:11",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 100.79,
+      "artifact_directory": "artifacts/lab-test-20261024t174309z-42111/random:11"
+    },
+    {
+      "scenario": "random:23",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 92.54,
+      "artifact_directory": "artifacts/lab-test-20261024t174309z-42111/random:23"
+    },
+    {
+      "scenario": "random:47",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 109.41,
+      "artifact_directory": "artifacts/lab-test-20261024t174309z-42111/random:47"
+    },
+    {
+      "scenario": "final-acceptance",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 35.79,
+      "artifact_directory": "artifacts/lab-test-20261024t174309z-42111/final-acceptance"
+    }
+  ],
+  "failed_attempts_retained": [
+    {
+      "project": "lab-test-20261024t170950z-27641",
+      "scenario": "kill:plate-reader-1",
+      "error": "URLError('http://host.docker.internal:30266/graphql: <urlopen error [Errno 101] Network is unreachable>')"
+    },
+    {
+      "project": "lab-test-20261024t172155z-34040",
+      "scenario": "hang:incubator-1:long",
+      "error": "URLError('http://host.docker.internal:55477/runs: <urlopen error [Errno 101] Network is unreachable>')"
+    }
+  ],
+  "combined_unit_and_integration_coverage_percent": {
+    "lab": 69.7,
+    "driver": 63.1,
+    "executor": 69.9
+  },
+  "component_project": "lab-test-20261024t175429z-45406",
+  "unit_checks": "go test ./...; python3 -m unittest discover -s scripts/tests",
+  "vet": "go vet ./...",
+  "race_checks": "Go 1.26 Alpine with build-base, CGO_ENABLED=1 go test -race ./services/...",
+  "fixed_files": "instrument.go, models.go and acceptance.sh unchanged from plan-review baseline",
+  "cleanup": {
+    "owned_containers_volumes_networks_remaining": 0,
+    "test_application_image_tags_removed": 52,
+    "shared_base_images_and_build_cache": "retained"
+  }
+}

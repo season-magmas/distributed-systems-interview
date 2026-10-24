@@ -1,8 +1,8 @@
 # Part 2: messaging, persistence, and restart recovery
 
-Status: detailed specification for implementation planning, 2026-10-24.
-No implementation or system testing has occurred for this specification.
-Read alongside `003-plan-part-1.md` and `002-plan-response.md`.
+Status: implemented and validated on 2026-10-24. The contract below is the
+planning record; actual storage choices, test evidence, elapsed time and remaining
+limits are documented in `../NOTES.md` and `../docs/validation.md`.
 
 ## Agreed choices and scope
 

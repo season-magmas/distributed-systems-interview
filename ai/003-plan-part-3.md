@@ -1,7 +1,8 @@
 # Part 3: automated system testing and chaos injection
 
-Status: detailed specification for implementation planning, 2026-10-24.
-No test harness changes or fault experiments have been performed for this document.
+Status: implemented and validated on 2026-10-24. The contract below is the
+planning record; actual storage choices, test evidence, elapsed time and remaining
+limits are documented in `../NOTES.md` and `../docs/validation.md`.
 
 ## Agreed decisions
 

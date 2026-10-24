@@ -1,0 +1,1 @@
+ok  	github.com/automata-tech/distributed-systems-interview/services/common/lab	0.024s	coverage: 69.7% of statements

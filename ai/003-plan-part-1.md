@@ -1,7 +1,8 @@
 # Part 1: execution record and recovery contract
 
-Status: specification for implementation planning, 2026-10-24. No behavior has
-been implemented or tested. This expands step 1 of `ai/002-plan-response.md`.
+Status: implemented and validated on 2026-10-24. The contract below is the
+planning record; actual storage choices, test evidence, elapsed time and remaining
+limits are documented in `../NOTES.md` and `../docs/validation.md`.
 
 ## Decisions from the interview
 

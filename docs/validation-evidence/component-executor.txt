@@ -1,0 +1,1 @@
+ok  	github.com/automata-tech/distributed-systems-interview/services/executor	9.420s	coverage: 69.9% of statements

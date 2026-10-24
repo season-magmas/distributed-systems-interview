@@ -1,7 +1,8 @@
 # Part 4: first complete execution path
 
-Status: detailed implementation specification, 2026-10-24. Planning only; no
-application changes, database resets, or runtime tests have been performed here.
+Status: implemented and validated on 2026-10-24. The contract below is the
+planning record; actual storage choices, test evidence, elapsed time and remaining
+limits are documented in `../NOTES.md` and `../docs/validation.md`.
 
 ## Agreed choices
 

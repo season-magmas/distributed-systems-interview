@@ -2,7 +2,8 @@
 
 This implements the lab executor/driver exercise using JetStream, a Postgres
 outbox, persistent driver spools, and GraphQL queries/mutations with polling.
-Fault validation is still in progress; final suite results are recorded below.
+All 33 recorded system scenarios passed across the retained/resumed campaign
+segments described below. Known limits remain explicit.
 The detailed design and interview decisions are in `ai/003-plan-part-1.md` through
 `ai/003-plan-part-7.md`. Reproduction and failure evidence are in
 [`docs/validation.md`](docs/validation.md).
@@ -158,11 +159,37 @@ it cannot promise that the client sees every intermediate transition.
 See [`docs/validation.md`](docs/validation.md) for exact reproduction commands,
 component coverage, setup failures, safety regressions and resulting fixes.
 
-Observed so far: both provided workflows passed all seven unchanged acceptance
-checks; the isolated GraphQL execution path and real Postgres/NATS integration
-checks passed. Go unit/component tests and containerized Go 1.26 race checks passed.
-The full fail-fast extended suite is running; do not treat pending scenarios as
-passed. Its final `results.json` and selected evidence will be summarized here.
+All **33 scenarios** passed at application source revision `3df4d08`, verified by
+source fingerprint `f6b94cce023d43aca8a25b8d782e76409ef60307dcf49794820872b85617d38b`. Passing results were
+retained while the runner was corrected for read-only GraphQL and proven pre-send
+connection failures; the remaining scenarios were explicitly resumed. This was a
+segmented campaign, not one uninterrupted passing invocation. No application
+source or dependency version changed between those segments.
+
+The matrix includes both seven-check acceptance workflows; all executor/driver
+partitions and process deaths; storage outage; safe/nonretryable failures;
+three-attempt exhaustion; real 30-second hangs; repeated 60-second hangs;
+concurrent workflows; pending/active cancellation; GraphQL execution; NATS/Postgres
+restarts; overdue unresolved work with later recovery; storage plus driver death;
+and random seeds **7, 11, 23, 47**, each for 60 seconds with all created runs drained.
+
+The fail-then-succeed instrument fixtures use **CHAOS_SEED=2** for the incubator
+and **CHAOS_SEED=4** for the plate reader, with 50% failure or hang probability.
+Persistent failure/hang cases use 100% on the selected device. The longer hang case
+uses Triple Assay, HANG_DURATION=60s and RECOVERY_TIMEOUT=75s. Every scenario starts
+with explicit fault settings and isolated volumes; final acceptance has faults zero.
+
+Go tests, vet, Python harness tests and containerized Go 1.26 race checks passed.
+Combined component/unit tests with real dependencies reported coverage of
+69.7% for lab protocol/spool/transport, 63.1% for the driver,
+and 69.9% for the executor. These are Go test coverage figures;
+the separate Docker fault campaign is not included in those counters. No claim of
+100% coverage or mathematical exactly-once execution is made.
+
+See [`docs/validation-results.json`](docs/validation-results.json) for all scenario
+results, timing, segment references and retained failed attempts, and
+[`docs/validation-evidence/`](docs/validation-evidence/) for selected portable logs
+and the three-attempt long-hang ledger. Raw artifacts remain under `artifacts/`.
 
 ## 5. Limits and unproven behavior
 
@@ -186,19 +213,28 @@ passed. Its final `results.json` and selected evidence will be summarized here.
 
 ## 6. Time spent
 
-Implementation session began at approximately 16:20 UTC on 2026-10-24. Final elapsed
-time, including builds and fault-test waits, will be recorded when validation ends.
-The user's earlier planning/reading time has not been estimated from commit dates.
+Approximately **97 minutes** elapsed in this implementation/validation session
+(16:20–17:56 UTC on 2026-10-24), including builds, fault-test waits, fixes,
+and documentation. Earlier user reading/planning time was not supplied and is
+not inferred from commit dates, so this is not a claimed total for all exercise work.
 
 ## 7. Exercise feedback
 
-User feedback is pending. The exercise's fixed ledger and hash side channel make
-physical/data truth independently testable. The instrument-to-spool atomicity limit
-is an intentional boundary to describe explicitly rather than conceal with retries.
+Implementation observations: the independent ledger and measurement hashes made
+physical/data claims testable. Cancellation and ambiguous execution needed explicit
+policy because the fixed HTTP vocabulary has no unknown state. Realistic hangs and
+fresh stack startup dominated iteration time; focused component tests and targeted
+scenario reruns helped. I would add durable outcome/data retrieval by job ID to the
+instrument contract, or explicitly state the expected loss policy for the current
+measurement handoff window. Driver death is also useful as a first-class chaos action,
+which this implementation adds. No additional personal feedback from the user was
+supplied; these are observations from the assisted implementation.
 
 ## 8. AI assistance and submission
 
-Planning prompts/responses and decisions are in `ai/`; conversations have been
-captured in Git as work progressed, as recorded in the agreed submission plan.
-The user retains control of any further conversation export/redaction. No GitHub
-publication has been performed by this implementation task.
+Planning prompts/responses and decisions are in `ai/`, with a partial implementation
+conversation/activity record in `ai/005-implementation-response.md`. Repeated progress
+messages and most raw tool output are omitted and that omission is disclosed there.
+A complete platform-exported transcript was not generated by the tools. The user
+can add an export/share link before submission for a fuller conversation record.
+No GitHub publication has been performed by this implementation task.

@@ -1,0 +1,173 @@
+{
+  "time": 1792864015.5320182,
+  "runs": {
+    "run-a76007b0012741c275efdca5": {
+      "id": "run-a76007b0012741c275efdca5",
+      "workflow_name": "Triple Assay",
+      "status": "failed",
+      "created_at": "2026-10-24T17:43:36.129456972Z",
+      "started_at": "2026-10-24T17:43:36.133683305Z",
+      "finished_at": "2026-10-24T17:46:51.131918006Z",
+      "steps": [
+        {
+          "name": "prepare",
+          "device_id": "liquid-handler-1",
+          "depends_on": [],
+          "status": "completed",
+          "started_at": "2026-10-24T17:43:36.34195584Z",
+          "finished_at": "2026-10-24T17:43:38.345372672Z",
+          "error": null,
+          "data_ref": null
+        },
+        {
+          "name": "pipette",
+          "device_id": "liquid-handler-1",
+          "depends_on": [
+            "prepare"
+          ],
+          "status": "completed",
+          "started_at": "2026-10-24T17:43:38.571939584Z",
+          "finished_at": "2026-10-24T17:43:40.574044928Z",
+          "error": null,
+          "data_ref": null
+        },
+        {
+          "name": "incubate",
+          "device_id": "incubator-1",
+          "depends_on": [
+            "prepare"
+          ],
+          "status": "failed",
+          "started_at": "2026-10-24T17:43:38.569924864Z",
+          "finished_at": "2026-10-24T17:46:47.549722368Z",
+          "error": "instrument hung",
+          "data_ref": null
+        },
+        {
+          "name": "plate_read",
+          "device_id": "plate-reader-1",
+          "depends_on": [
+            "prepare"
+          ],
+          "status": "completed",
+          "started_at": "2026-10-24T17:43:38.57422592Z",
+          "finished_at": "2026-10-24T17:43:40.578906624Z",
+          "error": null,
+          "data_ref": "s3://lab-data/runs/run-a76007b0012741c275efdca5/jobs/job-1f504df4e834e5ce56dcdd5c/executions/f3032b94658833938b8111ed30ca6e2f/measurement.csv"
+        },
+        {
+          "name": "report",
+          "device_id": "plate-reader-1",
+          "depends_on": [
+            "pipette",
+            "incubate",
+            "plate_read"
+          ],
+          "status": "cancelled",
+          "started_at": null,
+          "finished_at": null,
+          "error": "not started: another step failed",
+          "data_ref": null
+        }
+      ]
+    }
+  },
+  "instruments": {
+    "liquid-handler-1": {
+      "busy": false,
+      "current_job_id": "",
+      "device_id": "liquid-handler-1",
+      "executions": [
+        {
+          "execution_id": "a11b2e3418895b35361e0af9673121e6",
+          "job_id": "job-30314362226106920c00b74f",
+          "run_id": "run-a76007b0012741c275efdca5",
+          "step_name": "prepare",
+          "started_at": 1792863816.341956,
+          "outcome": "completed",
+          "finished_at": 1792863818.3453727,
+          "error": "",
+          "data_sha256": null
+        },
+        {
+          "execution_id": "4a378d8b53e8e74d61500f3d22c99f9c",
+          "job_id": "job-178ef89262ff7478eea5dfe1",
+          "run_id": "run-a76007b0012741c275efdca5",
+          "step_name": "pipette",
+          "started_at": 1792863818.5719395,
+          "outcome": "completed",
+          "finished_at": 1792863820.574045,
+          "error": "",
+          "data_sha256": null
+        }
+      ],
+      "fail_pct": 0,
+      "failures_retryable": false,
+      "hang_pct": 0
+    },
+    "incubator-1": {
+      "busy": false,
+      "current_job_id": "",
+      "device_id": "incubator-1",
+      "executions": [
+        {
+          "execution_id": "b8b0aed39a09dfec29140974dd132fef",
+          "job_id": "job-0e4a1e8e83a0c10c99919885",
+          "run_id": "run-a76007b0012741c275efdca5",
+          "step_name": "incubate",
+          "started_at": 1792863818.5699248,
+          "outcome": "hung",
+          "finished_at": 1792863878.5739129,
+          "error": "instrument hung",
+          "data_sha256": null
+        },
+        {
+          "execution_id": "109fb8d6bf1c23002813b4562e535580",
+          "job_id": "job-a7bc4d05216053fe6e562e1d",
+          "run_id": "run-a76007b0012741c275efdca5",
+          "step_name": "incubate",
+          "started_at": 1792863882.643925,
+          "outcome": "hung",
+          "finished_at": 1792863942.646902,
+          "error": "instrument hung",
+          "data_sha256": null
+        },
+        {
+          "execution_id": "15f0679fbc0567180bd02db116412416",
+          "job_id": "job-660d62f7647a5843416cff67",
+          "run_id": "run-a76007b0012741c275efdca5",
+          "step_name": "incubate",
+          "started_at": 1792863947.5478792,
+          "outcome": "hung",
+          "finished_at": 1792864007.5497224,
+          "error": "instrument hung",
+          "data_sha256": null
+        }
+      ],
+      "fail_pct": 0,
+      "failures_retryable": true,
+      "hang_pct": 100
+    },
+    "plate-reader-1": {
+      "busy": false,
+      "current_job_id": "",
+      "device_id": "plate-reader-1",
+      "executions": [
+        {
+          "execution_id": "f3032b94658833938b8111ed30ca6e2f",
+          "job_id": "job-1f504df4e834e5ce56dcdd5c",
+          "run_id": "run-a76007b0012741c275efdca5",
+          "step_name": "plate_read",
+          "started_at": 1792863818.574226,
+          "outcome": "completed",
+          "finished_at": 1792863820.5789065,
+          "error": "",
+          "data_sha256": "642ede1327d8acc8093cd846a26aad9c87715059fe46d9e5d4f26f052668f4fb"
+        }
+      ],
+      "fail_pct": 0,
+      "failures_retryable": true,
+      "hang_pct": 0
+    }
+  }
+}

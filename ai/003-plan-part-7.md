@@ -1,8 +1,8 @@
 # Part 7: evidence, notes, and submission readiness
 
-Status: submission specification added during the plan review, 2026-10-24.
-Implementation and runtime validation remain outstanding. This closes the missing
-detailed plan for the README's required note; it does not claim work is complete.
+Status: implemented and validated on 2026-10-24. The contract below is the
+planning record; actual storage choices, test evidence, elapsed time and remaining
+limits are documented in `../NOTES.md` and `../docs/validation.md`.
 
 ## README requirement coverage
 

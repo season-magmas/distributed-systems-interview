@@ -49,8 +49,9 @@ and its consistency rationale are documented in NOTES.md.
 
 Both unchanged acceptance workflows and real-service component tests have passed.
 Go unit checks, coverage inspection, vet and containerized Go 1.26 race checks have
-also run. The extended fault campaign is being completed, preserving failed attempts
-and recording unexecuted scenarios as not run.
+also run. All 33 system scenarios passed across source-identical retained/resumed segments.
+Failed attempts were preserved, and unexecuted scenarios stayed not run until their
+subsequent successful execution.
 
 The campaign exposed test-harness setup/readiness/port issues as well as application
 issues. Each fix has a corresponding test or targeted rerun. Detailed evidence,

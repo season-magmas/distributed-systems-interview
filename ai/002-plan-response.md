@@ -1,9 +1,9 @@
 # Proposed implementation plan
 
-Status: proposed for discussion, 2026-10-24. Implementation has not started.
-D1–D7 are agreed as detailed in `003-plan-part-1.md`,
-`003-plan-part-2.md`, and `003-plan-part-3.md`. Other recommendations remain proposals. We will review and refine the steps
-in order before proceeding to implementation.
+
+Status: implemented and validated; see NOTES.md and docs/validation.md for actual
+choices, the recorded 33-scenario matrix, and known limitations. The original plan
+and decision history are retained below.
 
 ## Objective and constraints
 

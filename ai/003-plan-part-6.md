@@ -1,7 +1,8 @@
 # Part 6: GraphQL run record and polling interface
 
-Status: detailed specification for implementation planning, 2026-10-24.
-No GraphQL implementation or runtime validation has been performed.
+Status: implemented and validated on 2026-10-24. The contract below is the
+planning record; actual storage choices, test evidence, elapsed time and remaining
+limits are documented in `../NOTES.md` and `../docs/validation.md`.
 
 ## Agreed decisions
 

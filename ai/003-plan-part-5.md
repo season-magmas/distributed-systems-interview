@@ -1,7 +1,8 @@
 # Part 5: recovery hardening and fault validation
 
-Status: detailed implementation specification, 2026-10-24. Planning only; fault
-experiments and recovery validation have not been run.
+Status: implemented and validated on 2026-10-24. The contract below is the
+planning record; actual storage choices, test evidence, elapsed time and remaining
+limits are documented in `../NOTES.md` and `../docs/validation.md`.
 
 ## Agreed decisions
 

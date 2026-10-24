@@ -58,8 +58,10 @@ variables at a development stack containing work you want to retain.
   known measurement loss, hang observation, hash conflicts, object round trips,
   workflow DAG errors, HTTP error contracts, and GraphQL validation.
 
-Full-suite results and exact run identifiers are recorded in NOTES.md after the
-fault campaign completes. Raw artifacts are ignored by Git; preserve or export the
+All 33 scenarios passed across the application-identical campaign segments in
+`validation-results.json`. A passing prefix was retained after client-only fixes;
+this does not claim a single uninterrupted passing suite run. The final resumed
+segment completed with no failures and no remaining scenarios. Raw artifacts are ignored by Git; preserve or export the
 referenced run directory if independent inspection of every snapshot is required.
 
 ## Failures that changed the implementation
@@ -104,3 +106,35 @@ Precise instruction-level crash windows are exercised with focused tests and
 controlled dependency failures, not inferred from random seeds. The tests cannot
 establish power-loss tolerance, broker/database volume-loss recovery, safe multiple
 active owners, or lossless capture across the instrument-to-spool handoff.
+
+## Final recorded campaign
+
+See [validation-results.json](validation-results.json) for per-scenario durations,
+artifact directories, retained failed attempts and the application source proof.
+The application is revision `3df4d08`; subsequent source changes are tests, harness,
+documentation and a direct-dependency annotation without changing versions.
+
+```sh
+./scripts/system-test.sh --suite extended
+./scripts/system-test.sh --suite extended --start-at kill:plate-reader-1
+./scripts/system-test.sh --suite extended --start-at hang:incubator-1:long
+```
+
+The first two invocations stopped on test-client connection/readiness failures;
+passing scenarios remain recorded. The final invocation passed its entire selected
+remainder. The union covers all 33 scenarios at the same application fingerprint.
+Every passing scenario records successful cleanup of owned containers, networks
+and volumes. Selected portable evidence is committed under `validation-evidence/`;
+full raw logs remain in the ignored artifact directories.
+
+Additional harness fixes: GraphQL read queries now retry bounded availability
+failures, whereas sent mutation requests are never automatically replayed. A custom
+HTTP connection marks failures during connection establishment, before request
+bytes are sent, so those proven pre-send failures can safely retry. Unit tests
+separately cover both cases. Persistent instrument failure is counted per logical
+step, not across all work on a device; the longer hang test uses the one-incubator-
+step Triple Assay workflow so its three-attempt deadline is sufficient.
+
+Final cleanup verified no campaign-owned containers, volumes or networks remain.
+The 52 application image tags created for these tests were removed; shared base
+images and build cache were retained.
