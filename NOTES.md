@@ -55,6 +55,11 @@ and clean isolated test-owned resources while retaining diagnostics, and provide
 a routine suite plus an extended suite. See `ai/003-plan-part-3.md` for scenarios,
 independent assertions, timeout rules, and artifact requirements.
 
+Agreed recovery validation: include NATS and Postgres restarts with intact volumes
+in the extended suite. Stop after the first failure, preserve diagnostics, clean
+owned resources, and mark remaining cases not run. `ai/003-plan-part-5.md` defines
+the recovery phases and completion gate.
+
 | Scenario | Exact command, seed, and configuration | Observed API, ledger, and data results | Fix and retest |
 | --- | --- | --- | --- |
 | Unit tests and coverage | TODO | Not run | TODO |

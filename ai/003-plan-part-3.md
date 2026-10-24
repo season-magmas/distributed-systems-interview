@@ -11,6 +11,9 @@ No test harness changes or fault experiments have been performed for this docume
 - Provide a routine suite plus an extended suite. Routine testing includes
   targeted cases and one fixed random seed; extended testing adds more seeds,
   combinations, and longer recovery scenarios.
+- Stop after the first failure, collecting diagnostics and cleaning owned resources;
+  remaining scenarios are reported as not run. Part 5 adds NATS and Postgres
+  restarts with intact volumes to the extended suite.
 
 These tests verify the contracts in parts 1 and 2. A failed scientific run can
 be the correct result of a fault test; test success means truthful reporting and
@@ -153,6 +156,8 @@ while retaining real 30-second hang coverage.
 ## Extended suite
 
 Include routine coverage, then add:
+
+- NATS and Postgres process restarts with intact volumes, as specified in part 5.
 
 - Additional fixed random seeds (proposed 11, 23, 47) with longer fault windows.
 - Longer configured hang, such as 60 seconds, with a matching recovery timeout;

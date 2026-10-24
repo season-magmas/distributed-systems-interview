@@ -203,6 +203,10 @@ physical timestamps are reflected accurately, and separate devices overlap.
 
 ## Step 5 — Implement and prove recovery
 
+Agreed: include NATS and Postgres process restarts with intact volumes in the
+extended suite. Stop each suite after its first failure, preserving diagnostics
+and cleaning test-owned resources. See `003-plan-part-5.md`.
+
 Work through deterministic fault scenarios individually: duplicate delivery,
 executor restart, disconnects, storage outage, driver death, failure, hang, and
 cancellation. Add regression tests for each discovered bug. Exercise late and
