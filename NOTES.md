@@ -13,6 +13,7 @@ design intentions and assumptions.
 
 ## Implementation
 * Use Sol to implement the plan as above.
+* Taking a break while Sol gets busy.
 
 ## 1. Topology
 
