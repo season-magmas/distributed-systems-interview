@@ -1,9 +1,11 @@
 # Implementation notes
 
-Status: planning; initial decisions are recorded below. Implementation and
-validation results are pending.
-Replace the placeholders as work progresses. Record observations separately from
-design intentions and assumptions.
+This implements the lab executor/driver exercise using JetStream, a Postgres
+outbox, persistent driver spools, and GraphQL queries/mutations with polling.
+Fault validation is still in progress; final suite results are recorded below.
+The detailed design and interview decisions are in `ai/003-plan-part-1.md` through
+`ai/003-plan-part-7.md`. Reproduction and failure evidence are in
+[`docs/validation.md`](docs/validation.md).
 
 ## Plan
 * Use Astra to help create a high level plan. Asking me question on how we should proceed. These are captured in ai/002-plan-response.md.
@@ -15,110 +17,188 @@ design intentions and assumptions.
 * Use Sol to implement the plan as above.
 * Taking a break while Sol gets busy.
 
-## 1. Topology
+## 1. Topology and state
 
-- Executor-to-driver subjects and message payloads: TODO
-- Driver-to-executor subjects and message payloads: TODO
-- Streams, persistence, retention, and consumers: TODO
-- Delivery, acknowledgement, and redelivery rules: TODO
-- State ownership (Postgres, NATS, instrument ledger, object storage): TODO
-- Job identities, deduplication, and restart reconciliation: TODO
-- Data upload and publication of `data_ref`: TODO
-- Diagram: TODO
+```text
+HTTP / GraphQL -> executor -> Postgres run record, attempts, reservations, outbox
+                                |                          ^
+                         outbox publisher                  |
+                                v                          |
+                   LAB_COMMANDS / lab.commands.<device>    |
+                                |                          |
+                      serial instrument adapter            |
+                        |                 |                 |
+                  fixed instrument    durable spool        |
+                                          |                |
+                                    verified S3 bytes      |
+                                          |                |
+                   LAB_RESULTS / lab.results.<device> ------+
+```
+
+- Both streams use file storage, work-queue retention, no age expiry, a 64 MiB
+  capacity and rejection of new publications when full. Capacity errors retain
+  pending intent rather than evicting unprocessed messages. NATS itself is the
+  supplied single server with a persistent volume; this is not replicated HA.
+- Command consumers are durable and filtered to one device; the executor has a
+  durable result consumer. Acknowledgements are explicit, with a 30-second wait
+  and command progress notifications every 10 seconds. Physical safety does not
+  depend on the broker's finite deduplication window.
+- Creating an attempt, reserving its device and writing its outbound command are
+  one Postgres transaction. Outbox publication waits for broker confirmation;
+  publication ambiguity reuses the same command/job identity.
+- The driver serializes device work and checks its spool plus instrument ledger
+  before execution. A command is acknowledged only after its terminal report and
+  final data disposition are durably accepted by JetStream. A result is acknowledged
+  only after evidence/deduplication/state changes commit in Postgres.
+- Each named driver has its own persistent `/spool` volume. A per-job atomic JSON
+  record contains immutable command identity, received measurement bytes, and the
+  latest replayable report. Writes use file sync, rename and directory sync; an
+  exclusive lock rejects a second local owner. Corruption/capacity errors stop work.
+- Postgres stores each public run and scheduling projection in one JSON aggregate,
+  plus separate attempts, reservations, outbox, inbox and rejection tables. This
+  simplifies consistent HTTP snapshots. GraphQL batches attempts in a repeatable-read
+  snapshot. A transaction advisory lock serializes state transitions for the
+  agreed single-executor deployment. This is an intentional simplification of the
+  plan's initially separate run/step tables, not a distributed ownership mechanism.
+- The instrument ledger remains the physical evidence. Job IDs identify authorized
+  attempts, execution IDs identify actual physical work, and report IDs/revisions
+  identify transport updates. Redelivery never creates another physical attempt.
 
 ## 2. Decisions and alternatives
 
-| Decision | Choice and rationale | Alternatives considered | Tradeoffs |
-| --- | --- | --- | --- |
-| Messaging topology | Agreed: JetStream for durable messages and a Postgres outbox for outbound intent | Core NATS with persisted reconciliation | Durable delivery requires deduplication and recovery logic |
-| Physical execution and retries | Agreed: bounded exponential retries with recovery spanning the configured hang duration; proposed status-check delays are 0.5, 1, 2, 4, 8, 8, 8, 8 seconds (39.5 seconds total) | Stop after every failure | Three physical attempts total; recovery checks consume none; retry confirmed hangs only on safe devices |
-| Persistence and recovery | Agreed: one executor, one driver per device, and durable local driver spool; unresolved work stays running with an explicit recovery error | Active replicas or volatile driver buffers | Process restart recovery depends on intact volumes; see ai/003-plan-part-2.md |
-| Cancellation and hangs | Recovery must cover the default 30-second hang; proposed configurable deadline is 45 seconds, extended for longer hangs | Shorter retry windows exhaust before the instrument frees itself | Confirm idle status and terminal ledger evidence before any safe physical retry; cancellation stops new authorization and settles already dispatched work, preserving actual outcomes |
-| Schema and delivery | Agreed: recreate disposable databases and implement in small tested commits | Versioned upgrades; one large implementation commit | Existing disposable records are not preserved; see ai/003-plan-part-4.md |
-| Data durability | Persist captured bytes locally, then verify stored measurement; irrecoverably lost bytes fail the step without automatic re-read | Re-read after data loss | The fixed instrument cannot guarantee durable handoff of every measurement |
+JetStream makes offline commands/results durable. The Postgres outbox closes the
+state-change/publication gap; Core NATS alone would need custom replay for every
+lost request and reply. Neither durable messaging nor reusing a job ID alone stops
+repeat physical execution: the fixed instrument records IDs but does not deduplicate.
 
-Detailed planning contracts: `ai/003-plan-part-1.md` and
-`ai/003-plan-part-2.md`, `ai/003-plan-part-3.md`, and `ai/003-plan-part-4.md`. These describe planned
-behavior, not tested guarantees.
-Implementation details within the specifications remain subject to review.
+There is one executor and one driver per device, with concurrent runs and durable
+device reservations. Reserving through final data handling is conservative: an
+upload outage blocks that device, while unrelated devices/runs may progress. It
+keeps pending measurements bounded without introducing a separate upload scheduler.
+
+A step gets three total physical attempts. Only confirmed retryable failures/hangs
+on incubators/readers permit another attempt; liquid handling never repeats after
+failure/hang. Physical retry delays are 0.5 and 1 second for the two possible retries.
+Recovery observations separately back off 0.5, 1, 2, 4, 8 seconds, capped at 8 seconds;
+normal outcomes wake the adapter immediately. Checks/busy responses consume no
+physical-attempt budget. Retry due times survive executor restart.
+
+A dispatch deadline alerts on missing start evidence without expiring an authorized
+command. Physical recovery derives from the ledger start with at least
+`max(STEP_DURATION, HANG_DURATION) + 15s` (45 seconds with default settings).
+After expiry, unresolved work stays running with an explicit error, no speculative
+retry, and affected dispatch paused. The executor has its own watchdog so a broken
+connection cannot prevent the unresolved error from appearing. Late evidence resolves it.
+
+Cancellation prevents further authorization/retries and settles committed commands
+with their actual outcomes. It does not stop physical work. Cancelling during retry
+backoff preserves the last failed physical outcome and settles without waiting for
+work that was never authorized. Repeated start/cancel operations are idempotent.
+
+Measurement keys include run, job and execution IDs. The driver persists actual
+bytes, verifies downloaded SHA-256, and then exposes `s3://bucket/key`. Upload replay
+uses the original measurement. An existing verified object can resolve a lost upload
+response without another PUT. Confirmed missing bytes after physical success fail
+the logical step with `measurement_data_lost`; a replacement read is not the original
+measurement and is not silently substituted.
+
+The database is disposable for this exercise: schema changes require recreating
+explicitly disposable resources, without versioned upgrades. Application startup
+never drops a database. Implementation followed small compiling test commits and
+implementation commits, with regressions added for observed failures.
 
 ## 3. GraphQL interface
 
-- Planned schema and resolver contract: `ai/003-plan-part-6.md`; source pending implementation.
-- Agreed after review: GraphQL exposes attempts/data state, unpaginated run
-  listing, run lookup, and separate create/start/cancel mutations sharing the HTTP
-  application operations. Clients poll for progress. This supersedes read-only
-  GraphQL and satisfies the README requirement for tools to start runs through it.
-  These choices keep the initial interface simple; subscriptions are out of scope.
-- Status, error, nullability, and data-reference semantics: TODO
-- Why this shape suits scientists and tools: TODO
-- Example operations: TODO
+The schema is defined in [`services/executor/graphql.go`](services/executor/graphql.go)
+and served at `/graphql` on the executor's existing server. It uses graphql-go,
+with introspection, JSON POST, variables, and operation names. Queries include
+workflows, a run by ID and all runs in stable order. Listing is intentionally
+unpaginated for this small exercise. Clients poll a single run for progress.
 
-## 4. Validation and fault injection
+Separate `createRun`, `startRun` and `cancelRun` mutations share the same application
+operations as HTTP. The earlier read-only proposal was reversed during plan review
+to meet the README requirement that tools start runs through GraphQL. The provided
+HTTP routes and JSON/status values remain supported.
 
-No implementation checks or fault experiments have been recorded yet.
+The read model includes steps, attempts, execution outcomes and measurement state
+(`PENDING`, `STORED`, `LOST`, or `NOT_APPLICABLE`). This lets a scientist see a
+physically completed read whose logical step failed because its bytes were lost.
+Unknown physical evidence is absent, rather than a fabricated execution/time.
+Enums are uppercase; timestamps are UTC RFC3339 strings. Errors are nullable and
+execution history is retained. Creation is not idempotent; clients must not blindly
+repeat an uncertain create request. Start and cancel are idempotent.
 
-Agreed test strategy: extend `scripts/chaos.sh` to kill/restart drivers, create
-and clean isolated test-owned resources while retaining diagnostics, and provide
-a routine suite plus an extended suite. See `ai/003-plan-part-3.md` for scenarios,
-independent assertions, timeout rules, and artifact requirements.
+```graphql
+mutation Create { createRun { id status } }
+mutation Start($id: ID!) { startRun(id: $id) { id status } }
+query Follow($id: ID!) {
+  run(id: $id) {
+    id status cancellationRequested dispatchPaused
+    steps {
+      name status error dataRef
+      attempts {
+        jobId number recoveryError
+        executions {
+          id outcome error
+          measurement { state sha256 dataRef error }
+        }
+      }
+    }
+  }
+}
+```
 
-Agreed recovery validation: include NATS and Postgres restarts with intact volumes
-in the extended suite. Stop after the first failure, preserve diagnostics, clean
-owned resources, and mark remaining cases not run. `ai/003-plan-part-5.md` defines
-the recovery phases and completion gate.
+Select an `operationName` when sending the multi-operation document. Poll roughly
+once per second, slower during outages/unresolved recovery. Stop normal progress
+polling at a terminal run status. Polling returns persisted history/current state;
+it cannot promise that the client sees every intermediate transition.
 
-| Scenario | Exact command, seed, and configuration | Observed API, ledger, and data results | Fix and retest |
-| --- | --- | --- | --- |
-| Unit tests and coverage | TODO | Not run | TODO |
-| Happy-path acceptance | `./scripts/acceptance.sh` | Not run | TODO |
-| Executor restart | TODO | Not run | TODO |
-| Driver disconnect | TODO | Not run | TODO |
-| Storage outage | TODO | Not run | TODO |
-| Instrument failure or hang | TODO | Not run | TODO |
-| Seeded random chaos | TODO | Not run | TODO |
+## 4. What was tested and what broke
 
-Record environment details and restored fault settings here: TODO
+See [`docs/validation.md`](docs/validation.md) for exact reproduction commands,
+component coverage, setup failures, safety regressions and resulting fixes.
+
+Observed so far: both provided workflows passed all seven unchanged acceptance
+checks; the isolated GraphQL execution path and real Postgres/NATS integration
+checks passed. Go unit/component tests and containerized Go 1.26 race checks passed.
+The full fail-fast extended suite is running; do not treat pending scenarios as
+passed. Its final `results.json` and selected evidence will be summarized here.
 
 ## 5. Limits and unproven behavior
 
-Plan review: parts 1–6 now distinguish dispatch and physical recovery deadlines,
-settle cancelled retry waits, preserve per-execution evidence, and stage validation
-around feature availability. Part 7 specifies all required submission evidence.
-These are design corrections; no runtime tests have been run for this review.
-
-The fixed instrument's measurement-to-spool handoff is not atomic. A crash before
-capture can irrecoverably lose bytes despite a successful physical read. The plan
-reports this explicitly; it does not guarantee lossless preservation of every read.
-
-
-- Known cases where the record may not be true: TODO
-- Behavior not yet tested or proven: TODO
-- Intentional boundaries and their rationale: TODO
-- Remaining risks and next steps: TODO
+- The fixed instrument cannot atomically transfer measured bytes into the spool.
+  A crash after physical measurement but before capture can irrecoverably lose
+  the actual data. The record reports that loss; lossless preservation of every
+  physical read is not guaranteed.
+- The instrument logs terminal-ledger write failures and can retain newer evidence
+  only in memory. Disk corruption or volume loss can leave insufficient evidence;
+  it is outside the automatic recovery guarantee and must not authorize unsafe work.
+- Recovery assumes intact Postgres, NATS, ledger and spool volumes. There is no
+  replicated failover or fencing for multiple active owners.
+- Runs can remain running indefinitely when evidence cannot be recovered. There
+  is no unsafe force-complete/force-retry endpoint or automatic operator repair.
+- Spool records/bytes and attempt history are retained without garbage collection.
+  Explicit capacity backpressure is safe but indefinite production operation needs
+  retention/archival policy and pagination.
+- A logical step's interval can span several physical attempts/backoff periods;
+  GraphQL execution intervals are the precise physical history. Current HTTP model
+  shapes cannot expose the entire attempt history.
 
 ## 6. Time spent
 
-Approximate actual total: TODO
-
-| Activity | Time spent |
-| --- | --- |
-| Reading and design | TODO |
-| Implementation | TODO |
-| Tests and fault experiments | TODO |
-| Documentation | TODO |
+Implementation session began at approximately 16:20 UTC on 2026-10-24. Final elapsed
+time, including builds and fault-test waits, will be recorded when validation ends.
+The user's earlier planning/reading time has not been estimated from commit dates.
 
 ## 7. Exercise feedback
 
-- What was unclear: TODO
-- What was annoying: TODO
-- What I would change: TODO
+User feedback is pending. The exercise's fixed ledger and hash side channel make
+physical/data truth independently testable. The instrument-to-spool atomicity limit
+is an intentional boundary to describe explicitly rather than conceal with retries.
 
 ## 8. AI assistance and submission
 
-- Conversation exports in `ai/` or share links: TODO
-- Material omitted from conversations, if any: TODO
-- How AI assistance was used and decisions reviewed: TODO
-
-Before submission, replace placeholders, commit this note, record actual time,
-and include conversation exports or links. Follow the README submission steps.
+Planning prompts/responses and decisions are in `ai/`; conversations have been
+captured in Git as work progressed, as recorded in the agreed submission plan.
+The user retains control of any further conversation export/redaction. No GitHub
+publication has been performed by this implementation task.
