@@ -199,6 +199,41 @@ curl -s localhost:7103/status    | jq   # what the plate reader has done
 ./scripts/acceptance.sh                  # fails until you build something
 ```
 
+## Scientist web UI
+
+Open [http://localhost:5002/](http://localhost:5002/) after starting the stack.
+Choose a workflow and **Create run**, review its steps, then **Start run**.
+Select any run from the history to follow it. The page polls GraphQL every two
+seconds and shows step status, physical attempts, recovery errors, and measurement
+state, SHA-256, and S3 references under **Attempts & data**. Run links can be
+bookmarked. Cancellation requests stop future steps while active work settles.
+
+The UI is embedded in the executor binary; no frontend build or npm install is
+needed to run it. After changing UI assets, rebuild the executor:
+
+```bash
+docker compose up --build -d --no-deps executor
+```
+
+Run UI logic tests with Node.js 20 or newer:
+
+```bash
+node --test services/executor/web/app.test.mjs
+```
+
+For browser checks against a fresh, test-owned stack, install `playwright-core`
+in a temporary directory and provide a local Chromium executable. The runner
+builds the services, verifies UI-created runs against instrument ledgers and
+stored measurement hashes, runs HTTP acceptance, and cleans up its containers,
+volumes, networks, and application image tags. It stops on the first failure.
+Screenshots, logs, and results go in `artifacts/`.
+
+```bash
+npm install --prefix /tmp/lab-ui-browser playwright-core@1.64.1 --no-audit --no-fund
+LAB_PLAYWRIGHT_MODULE=file:///tmp/lab-ui-browser/node_modules/playwright-core/index.mjs \
+CHROMIUM_PATH=/usr/bin/chromium python3 scripts/web_ui_test.py
+```
+
 ## Breaking things
 
 ```bash
@@ -285,7 +320,8 @@ Before you send it, check that:
 | `POST` | `/runs/{id}/start` | Start it |
 | `POST` | `/runs/{id}/cancel` | Cancel it |
 | `GET` | `/runs/{id}/timeline` | When each step occupied its device |
-| | `/graphql` | **Yours.** Not there yet |
+| `POST` | `/graphql` | Run record queries and create/start/cancel mutations |
+| `GET` | `/` | Scientist web UI |
 
 ### instruments (ports 7101, 7102, 7103)
 

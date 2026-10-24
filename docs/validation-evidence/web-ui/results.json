@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "checks": [
+    "browser",
+    "independent ledger and measurement hashes",
+    "HTTP acceptance"
+  ],
+  "cleanup_errors": []
+}
