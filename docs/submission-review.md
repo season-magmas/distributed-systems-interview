@@ -18,9 +18,9 @@ not a proof of correctness for every possible fault.
 | NOTES GraphQL schema and reasoning | Section 3 describes the read model, mutations, nullability, timestamps, enums and polling. |
 | NOTES faults, results and fixes | Section 4 plus committed validation records give commands, settings, seeds, failures and fixes. |
 | NOTES remaining limits | Section 5 explicitly covers measurement handoff, volume loss/corruption, single ownership, unresolved work and retention limits. |
-| NOTES time spent | Implementation session: approximately 97 minutes; UI follow-up: approximately 12 minutes. Personal planning/review time and this final review are not yet consolidated into a total. User input requested. |
-| Personal exercise feedback | Implementation observations are recorded. User's own feedback has been requested and is not fabricated. |
-| AI conversation disclosure | Prompts, planning responses and partial activity records are tracked in ai/. NOTES explicitly discloses omitted progress/tool output and the absence of a complete platform export. README permits disclosed omissions; a fuller export/share link is optional. User preference requested. |
+| NOTES time spent | Approximately 3 hours personal time, excluding assisted implementation; approximately 97 minutes implementation/validation plus 12 minutes UI and a few minutes final review. Roughly 5 hours overall, with the components stated separately in NOTES section 6. |
+| Personal exercise feedback | Personal feedback recorded in NOTES section 7: a known GitHub username for sharing the submission would have been helpful. Implementation observations remain separately identified. |
+| AI conversation disclosure | Prompts, planning responses and partial activity records are tracked in ai/. NOTES explicitly discloses omitted progress/tool output and the absence of a complete platform export. README permits disclosed omissions. The user considers the existing records a complete functional picture and selected them for submission with the disclosure retained. |
 | Committed NOTES and submission files | NOTES and existing ai/ records are tracked and committed. This review and documentation corrections are committed with the finishing pass. |
 | Own GitHub repository and send its link | Pending user submission. No Git remote is configured at review time. No publication was requested or performed. |
 
@@ -48,14 +48,13 @@ independent ledger/data-hash checks, and seven-check HTTP acceptance passed
 separately, as documented in web-ui-validation.md. Raw artifacts are ignored by
 Git; selected portable evidence is committed under validation-evidence/.
 
-## Inputs before submission
+## Submission readiness
 
-1. Supply a rough total including personal planning/reading/review time; keep
-   the recorded assisted-session timings clear and avoid double-counting overlap.
-2. Supply personal feedback: what was unclear or annoying, and what to change.
-3. Confirm the existing disclosed partial AI records are the intended submission,
-   or add a complete export/share link.
+The user supplied approximately three hours of personal time, excluding assisted
+implementation, and personal feedback about the missing GitHub sharing username.
+Both are recorded in NOTES. The user also confirmed that the existing AI records
+provide a complete functional picture; their disclosed omissions remain explicit.
 
-The first two are the remaining README write-up gaps. The third is a disclosure
-choice, since the README allows omissions when they are stated. Publishing the
-repository and sending its link remain the user's final submission steps.
+The README implementation, evidence and write-up requirements are addressed within
+the documented limits. Publishing to the user's own GitHub repository and sending
+its link remain the final submission steps. No publication was performed here.
