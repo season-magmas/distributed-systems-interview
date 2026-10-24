@@ -54,3 +54,11 @@ func TestIntegrationGraphQLMutationsAndReadModel(t *testing.T) {
 		t.Fatal(response.Body.String())
 	}
 }
+
+func TestGraphQLUnknownWorkflowIsActionable(t *testing.T) {
+	a := &API{workflowsPath: "../../config/workflows.yaml"}
+	response := graphRequest(a, `mutation { createRun(workflowName:"missing-assay") { id } }`)
+	if !strings.Contains(response.Body.String(), "unknown workflow") {
+		t.Fatalf("unhelpful domain error: %s", response.Body.String())
+	}
+}
