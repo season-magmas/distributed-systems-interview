@@ -11,10 +11,10 @@ The detailed design and interview decisions are in `ai/003-plan-part-1.md` throu
 ## Personal notes during progress
 
 ### Plan
-* Use Astra to help create a high level plan. Asking me question on how we should proceed. These are captured in ai/002-plan-response.md.
+* Use Astra to help create a high level plan. Asking me questions on how we should proceed. These are captured in ai/002-plan-response.md.
 * Each part was then planned in detailed using a simple Q/A process. These are captured in ai/003-plan-part-X.md.
   * Rejected suggested use of graphql mutations as we already have existing HTTP methods and want to keep things as simple as possible.
-    * This was then reverted on plan review
+    * This was then reverted on plan review.
 
 ### Implementation
 * Use Sol to implement the plan as above.
@@ -25,6 +25,27 @@ The detailed design and interview decisions are in `ai/003-plan-part-1.md` throu
 
 ### Extension
 * Added simple UI to aid testing and verify sane outputs.
+
+### Code review
+* Performed a code review with Astra in a fresh session, which spotted a couple of minor edge cases.
+* Requested fixes.
+
+### Trying to break it
+* Instructed agent to have a crack at really trying to break things.
+  * Hit "no space left on device" with agent freeing up docker resources and continuing.
+
+### Retrospective
+My initial take on this excercise was to not use any agentic assistance to complete. However, given the context of the original application process and
+speaking to Tom in our first call I thought that actually using an agent to achieve the bulk of the work would be a more appropriate approach and
+I attempted to stay as far back from the mechanics of the implementation as possible, instead taking on a more guidance/validation role.
+This was risky as I believe that we are all continuously learning on how to make best use of agents and where their evolving limitations lie.
+The approach I took was certainly more adventurous than what I usually would; I tend to have more, smaller, iterations.
+Given the structure of how to record use of ai for this exercise, this would have added significant friction.
+
+What would I change with hindsight? I'm not very keen on the db schema, storing items as json nearly always leads to problems down the line and I would like this to
+have been broken down into multiple tables, but as it stands it is a simple solution to the current problem.
+
+The content below is largely the agents works with a few tweaks from me. Appologies, I think it is way too long & detailed, but am including in full for reference.
 
 ---
 
@@ -365,12 +386,12 @@ instead of inventing a successful outcome or authorizing unsafe repetition.
 
 ## 6. Time spent
 
-Personal time was approximately **3 hours**, excluding the time when the AI-assisted
+Personal time was approximately **4 hours**, excluding the time when the AI-assisted
 implementation was taking place. The implementation/validation session took
 approximately **97 minutes** (16:20–17:56 UTC on 2026-10-24), including builds,
 fault-test waits, fixes and documentation. The web UI follow-up took approximately
 **12 minutes**, and the final submission review took a few additional minutes.
-Together these recorded periods amount to roughly **5 hours overall**, with
+Together these recorded periods amount to roughly **6 hours overall**, with
 personal time and assisted implementation time reported separately.
 
 ## 7. Exercise feedback
