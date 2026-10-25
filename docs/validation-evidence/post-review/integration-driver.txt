@@ -1,0 +1,1 @@
+ok  	github.com/automata-tech/distributed-systems-interview/services/driver	23.391s	coverage: 63.1% of statements

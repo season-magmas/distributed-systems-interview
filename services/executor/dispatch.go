@@ -210,7 +210,7 @@ func (e *Executor) resultLoop(ctx context.Context) {
 	var sub *nats.Subscription
 	var err error
 	for ctx.Err() == nil {
-		sub, err = e.js.PullSubscribe(lab.ResultPrefix+"*", "executor", nats.Bind(lab.ResultStream, "executor"))
+		sub, err = e.js.PullSubscribe(lab.ResultPrefix+"*", lab.ExecutorConsumer, nats.Bind(lab.ResultStream, lab.ExecutorConsumer))
 		if err == nil {
 			break
 		}
@@ -307,13 +307,13 @@ func (e *Executor) applyReport(ctx context.Context, b []byte) error {
 				return reject(ctx, tx, b, "terminal result needs one execution")
 			}
 			x := rep.Executions[0]
-			if x.Outcome != "completed" && x.Outcome != "failed" && x.Outcome != "hung" {
+			if x.Outcome != lab.OutcomeCompleted && x.Outcome != lab.OutcomeFailed && x.Outcome != lab.OutcomeHung {
 				return reject(ctx, tx, b, "unknown physical outcome")
 			}
-			if x.Outcome == "completed" && c.Device == "plate-reader-1" && x.DataState == lab.Stored && (len(x.Hash) != 64 || !strings.HasPrefix(x.DataRef, "s3://") || !strings.Contains(x.DataRef, "/executions/"+x.ID+"/")) {
+			if x.Outcome == lab.OutcomeCompleted && c.Device == lab.PlateReaderID && x.DataState == lab.Stored && (len(x.Hash) != 64 || !strings.HasPrefix(x.DataRef, "s3://") || !strings.Contains(x.DataRef, "/executions/"+x.ID+"/")) {
 				return reject(ctx, tx, b, "missing measurement evidence")
 			}
-			if x.Outcome == "running" || x.FinishedAt == nil || (c.Device == "plate-reader-1" && x.Outcome == "completed" && x.DataState != lab.Stored && x.DataState != lab.Lost) {
+			if x.Outcome == lab.OutcomeRunning || x.FinishedAt == nil || (c.Device == lab.PlateReaderID && x.Outcome == lab.OutcomeCompleted && x.DataState != lab.Stored && x.DataState != lab.Lost) {
 				return reject(ctx, tx, b, "unproven terminal report")
 			}
 		}
@@ -347,7 +347,7 @@ func (e *Executor) applyReport(ctx context.Context, b []byte) error {
 					return err
 				}
 				switch {
-				case x.Outcome == "completed" && x.DataState != lab.Lost:
+				case x.Outcome == lab.OutcomeCompleted && x.DataState != lab.Lost:
 					s.Status = StepCompleted
 					s.DataRef = ptr(x.DataRef)
 					s.Error = nil
@@ -361,7 +361,7 @@ func (e *Executor) applyReport(ctx context.Context, b []byte) error {
 					s.Status = StepFailed
 					s.Error = ptr(x.Error)
 					if x.DataState == lab.Lost {
-						s.Error = ptr("measurement_data_lost")
+						s.Error = ptr(lab.MeasurementDataLost)
 					}
 				}
 			}

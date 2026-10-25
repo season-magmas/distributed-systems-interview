@@ -23,9 +23,20 @@ const (
 	Pending         = "pending"
 	Lost            = "lost"
 	NotApplicable   = "not_applicable"
+
+	LiquidHandlerID  = "liquid-handler-1"
+	IncubatorID      = "incubator-1"
+	PlateReaderID    = "plate-reader-1"
+	ExecutorConsumer = "executor"
+
+	OutcomeRunning      = "running"
+	OutcomeCompleted    = "completed"
+	OutcomeFailed       = "failed"
+	OutcomeHung         = "hung"
+	MeasurementDataLost = "measurement_data_lost"
 )
 
-var Devices = []string{"liquid-handler-1", "incubator-1", "plate-reader-1"}
+var Devices = []string{LiquidHandlerID, IncubatorID, PlateReaderID}
 
 type Command struct {
 	Version          int           `json:"version"`
@@ -97,7 +108,7 @@ func Backoff(n int) time.Duration {
 	return (500 * time.Millisecond) * time.Duration(1<<n)
 }
 func CanRetry(device string, attempt int, outcome string) bool {
-	return (device == "incubator-1" || device == "plate-reader-1") && attempt < MaxAttempts && attempt > 0 && (outcome == "failed" || outcome == "hung")
+	return (device == IncubatorID || device == PlateReaderID) && attempt < MaxAttempts && attempt > 0 && (outcome == OutcomeFailed || outcome == OutcomeHung)
 }
 func CheckReport(old, next Report) error {
 	if old.Command.JobID != "" && !reflect.DeepEqual(old.Command, next.Command) {
@@ -117,7 +128,7 @@ func CheckReport(old, next Report) error {
 				break
 			}
 		}
-		if b == nil || !b.StartedAt.Equal(a.StartedAt) || (a.Outcome != "running" && b.Outcome != a.Outcome) || (a.Hash != "" && a.Hash != b.Hash) || (a.FinishedAt != nil && (b.FinishedAt == nil || !a.FinishedAt.Equal(*b.FinishedAt))) || (a.DataState == Stored && (b.DataState != Stored || b.DataRef != a.DataRef)) {
+		if b == nil || !b.StartedAt.Equal(a.StartedAt) || (a.Outcome != OutcomeRunning && b.Outcome != a.Outcome) || (a.Hash != "" && a.Hash != b.Hash) || (a.FinishedAt != nil && (b.FinishedAt == nil || !a.FinishedAt.Equal(*b.FinishedAt))) || (a.DataState == Stored && (b.DataState != Stored || b.DataRef != a.DataRef)) {
 			return fmt.Errorf("physical evidence conflict: %s", a.ID)
 		}
 	}

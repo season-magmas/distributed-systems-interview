@@ -14,6 +14,107 @@ function reader(query) {
   return { run: pending };
 }
 
+function deferred() {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
+
+test('a delayed selection cannot replace newer polling and mutation results', async () => {
+  for (const kind of ['start', 'cancel']) {
+    const old = deferred();
+    let reads = 0;
+    const changed = { ...pending, status: 'RUNNING', cancellationRequested: kind === 'cancel' };
+    const { notebook } = fixture(async (q) => {
+      if (q.includes('query Record') && ++reads === 1) return old.promise;
+      if (q.includes('mutation')) return { [`${kind}Run`]: changed };
+      return reader(q);
+    });
+    const selecting = notebook.select(pending.id);
+    await notebook.refresh();
+    await notebook.act(kind);
+    old.resolve({ run: pending });
+    await selecting;
+    assert.deepEqual(notebook.state.run, changed);
+    assert.equal(notebook.state.recordLoading, false);
+  }
+});
+
+test('a delayed selection failure cannot mark a newer successful read stale', async () => {
+  const old = deferred();
+  let reads = 0;
+  const { notebook } = fixture(async (q) => {
+    if (q.includes('query Record') && ++reads === 1) return old.promise;
+    return reader(q);
+  });
+  const selecting = notebook.select(pending.id);
+  await notebook.refresh();
+  old.reject(Error('old request failed'));
+  await selecting;
+  assert.equal(notebook.state.readError, '');
+  assert.deepEqual(notebook.state.run, pending);
+});
+
+test('a mutation invalidates outstanding detail reads even when its response is uncertain', async () => {
+  for (const uncertain of [false, true]) {
+    const old = deferred();
+    const changed = { ...pending, status: 'CANCELLED', cancellationRequested: true };
+    const { notebook } = fixture(async (q) => {
+      if (q.includes('query Record')) return old.promise;
+      if (uncertain) throw Error('response lost');
+      return { cancelRun: changed };
+    });
+    const selecting = notebook.select(pending.id);
+    await notebook.act('cancel');
+    old.resolve({ run: pending });
+    await selecting;
+    assert.equal(notebook.state.recordLoading, false);
+    if (uncertain) {
+      assert.equal(notebook.state.run, null);
+      assert.match(notebook.state.actionError, /may have been applied/);
+    } else {
+      assert.deepEqual(notebook.state.run, changed);
+    }
+  }
+});
+
+test('a current detail failure keeps the last record and clears on recovery', async () => {
+  let failed = false;
+  const { notebook } = fixture(async (q) => {
+    if (failed && q.includes('query Record')) throw Error('record unavailable');
+    return reader(q);
+  });
+  await notebook.refresh();
+  failed = true;
+  await notebook.refresh();
+  assert.deepEqual(notebook.state.run, pending);
+  assert.match(notebook.state.readError, /record unavailable/);
+  failed = false;
+  await notebook.refresh();
+  assert.equal(notebook.state.readError, '');
+});
+
+test('revisiting the same run ignores its previous response and loading completion', async () => {
+  const old = deferred();
+  const current = deferred();
+  let reads = 0;
+  const { notebook } = fixture(async (q, v) => {
+    if (v?.id === pending.id) return ++reads === 1 ? old.promise : current.promise;
+    return { run: { ...pending, id: v.id } };
+  });
+  const first = notebook.select(pending.id);
+  await notebook.select('other');
+  const latest = notebook.select(pending.id);
+  old.resolve({ run: pending });
+  await first;
+  assert.equal(notebook.state.run, null);
+  assert.equal(notebook.state.recordLoading, true);
+  current.resolve({ run: { ...pending, status: 'COMPLETED' } });
+  await latest;
+  assert.equal(notebook.state.run.status, 'COMPLETED');
+  assert.equal(notebook.state.recordLoading, false);
+});
+
 test('loads workflows and records, then creates and starts with separate mutations', async () => {
   const calls = [];
   const { notebook } = fixture(async (q, v) => {

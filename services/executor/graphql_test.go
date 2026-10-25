@@ -30,6 +30,40 @@ func TestGraphQLSchemaAndValidation(t *testing.T) {
 		t.Fatal(response.Body.String())
 	}
 }
+
+func TestGraphQLEmptyRunIDDoesNotAccessDatabase(t *testing.T) {
+	a := &API{workflowsPath: "../../config/workflows.yaml"}
+	response := graphRequest(a, `{ run(id: "") { id } }`)
+	if response.Code != http.StatusOK || strings.Contains(response.Body.String(), `"errors"`) || !strings.Contains(response.Body.String(), `"run":null`) {
+		t.Fatalf("empty ID should be a missing run: %s", response.Body.String())
+	}
+}
+
+func TestIntegrationGraphQLEmptyRunIDNeverListsRuns(t *testing.T) {
+	e, ctx := integrationExecutor(t)
+	a := &API{executor: e, workflowsPath: "../../config/workflows.yaml"}
+	for _, count := range []int{0, 2} {
+		for i := 0; i < count; i++ {
+			if _, err := e.CreateRun(ctx, "test", []StepTemplate{{Name: "fill", DeviceID: "liquid-handler-1"}}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		response := graphRequest(a, `{ run(id: "") { id } runs { id } }`)
+		var body struct {
+			Data struct {
+				Run  *struct{ ID string }
+				Runs []struct{ ID string }
+			}
+			Errors []any
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+			t.Fatal(err)
+		}
+		if len(body.Errors) > 0 || body.Data.Run != nil || len(body.Data.Runs) != count {
+			t.Fatalf("empty ID with %d runs: %s", count, response.Body.String())
+		}
+	}
+}
 func TestIntegrationGraphQLMutationsAndReadModel(t *testing.T) {
 	e, _ := integrationExecutor(t)
 	a := &API{executor: e, workflowsPath: "../../config/workflows.yaml"}

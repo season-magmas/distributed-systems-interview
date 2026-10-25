@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "scenario": "integration",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 39.14
+    }
+  ],
+  "not_run": [],
+  "failure": null
+}

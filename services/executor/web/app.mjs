@@ -49,15 +49,24 @@ export function createNotebook({ request = graphql, onChange = () => {} } = {}) 
     recordLoading: false,
   };
   let refreshing = null;
+  let detailGeneration = 0;
   const emit = () => onChange(state);
 
   async function detail(id) {
+    const generation = ++detailGeneration;
+    const current = () => state.selectedId === id && detailGeneration === generation;
     try {
       const result = await request(RECORD, { id });
-      // A slow response must never replace the record the scientist just selected.
-      if (state.selectedId === id) state.run = result.run;
+      // Selection, polling, and mutations can supersede a read of the same run.
+      if (!current()) return false;
+      state.run = result.run;
+      state.readError = '';
+      return true;
+    } catch (error) {
+      if (current()) state.readError = error.message;
+      return false;
     } finally {
-      if (state.selectedId === id) state.recordLoading = false;
+      if (current()) state.recordLoading = false;
     }
   }
   async function select(id) {
@@ -66,11 +75,7 @@ export function createNotebook({ request = graphql, onChange = () => {} } = {}) 
     state.recordLoading = true;
     state.actionError = '';
     emit();
-    try {
-      await detail(id);
-    } catch (error) {
-      if (state.selectedId === id) state.readError = error.message;
-    }
+    await detail(id);
     emit();
   }
   function refresh() {
@@ -82,7 +87,7 @@ export function createNotebook({ request = graphql, onChange = () => {} } = {}) 
         state.workflows = workflows.workflows;
         state.runs = runs.runs;
         if (!state.selectedId && state.runs.length) state.selectedId = state.runs[0].id;
-        if (state.selectedId) await detail(state.selectedId);
+        if (state.selectedId && !(await detail(state.selectedId))) return;
         state.updatedAt = new Date();
         state.readError = '';
       } catch (error) {
@@ -103,6 +108,8 @@ export function createNotebook({ request = graphql, onChange = () => {} } = {}) 
     try {
       // Finish an in-flight poll before applying mutation results to the view.
       if (refreshing) await refreshing;
+      ++detailGeneration;
+      state.recordLoading = false;
       const id = state.selectedId;
       const result = await request(MUTATIONS[kind], kind === 'create' ? { workflowName } : { id });
       const run = result[`${kind}Run`];

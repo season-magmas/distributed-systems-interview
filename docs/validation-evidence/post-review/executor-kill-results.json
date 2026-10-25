@@ -1,0 +1,12 @@
+{
+  "results": [
+    {
+      "scenario": "kill:executor",
+      "status": "passed",
+      "cleanup_errors": [],
+      "seconds": 40.76
+    }
+  ],
+  "not_run": [],
+  "failure": null
+}

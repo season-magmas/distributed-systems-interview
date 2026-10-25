@@ -452,3 +452,60 @@ picture. The disclosure of omitted progress/tool output remains. This review and
 the user's answers are recorded in `ai/007-finish-response.md`. The README write-up
 requirements are complete; publishing the repository and sending its link remain
 the user's submission steps.
+
+## 11. Post-review fixes (2026-10-25)
+
+Both findings in `ai/008-code-review-response.md` are addressed. An empty GraphQL
+run ID now returns `run: null` before it can enter the internal list-all lookup.
+Regression tests cover an absent database dependency and real Postgres with zero
+and two existing runs, while confirming that the ordinary `runs` query still
+lists all records.
+
+The notebook now assigns generations to detail requests and invalidates older
+reads before mutations. Only the current request can update the record, read
+error, or loading flag. Controlled promise tests cover delayed selection versus
+polling/start/cancellation, obsolete failures, revisiting the same run, uncertain
+mutation responses, and recovery from a current read failure. The original empty
+ID test and three request-order tests failed before the fixes and passed after.
+
+Reused device IDs, the executor consumer name, physical outcomes, and the
+measurement-loss code now use named Go constants. GraphQL reuses the existing
+run/step status constants. SQL statements remain inline, as the user clarified;
+the fixed instrument implementation and public API contracts are unchanged.
+
+Validation commands and observed results:
+
+- `go test ./...`, `go test -cover ./...`, and `go vet ./...` passed. Without
+  external endpoints, coverage was lab 53.3%, storage 58.1%, driver 50.5%, and
+  executor 27.6%; integration tests skip in these commands.
+- `node --test services/executor/web/app.test.mjs` passed all 13 tests.
+- `python3 -m unittest discover -s scripts/tests` passed all seven tests.
+- `./scripts/system-test.sh --scenario integration` passed against disposable
+  Postgres, NATS and object storage. Final-source coverage was lab 69.7%, driver
+  63.1%, and executor 70.2%. This includes the empty-ID integration regression.
+- `LAB_PLAYWRIGHT_MODULE=file:///tmp/lab-ui-browser/node_modules/playwright-core/index.mjs CHROMIUM_PATH=/usr/bin/chromium python3 scripts/web_ui_test.py`
+  passed Chromium checks, independent ledger/hash checks and HTTP acceptance
+  (all seven acceptance checks). The browser used the final UI fix; its build
+  preceded reverting the equivalent SQL-constant extraction. Final integration
+  and executor-kill validation ran after that reversion.
+- `./scripts/system-test.sh --scenario kill:executor` passed with seed `0` and
+  all instrument fault percentages `0`: the executor was killed during an active
+  liquid-handler execution, restarted, and the run completed with consistent
+  HTTP/GraphQL records, unique physical job identities and verified reader data.
+- `go test -race ./services/common/lab ./services/driver ./services/executor`
+  could not run with cgo disabled. Retrying with `CGO_ENABLED=1` failed because
+  this environment lacks `gcc`. No race-test pass is claimed.
+- Changed Go files were formatted with `go fmt`; `git diff --check` passed.
+
+Portable results are in [`docs/validation-evidence/post-review/`](docs/validation-evidence/post-review/).
+Raw logs are in ignored artifacts `lab-test-20261025t055911z-4564` (browser),
+`lab-test-20261025t060036z-10629` (final integration), and
+`lab-test-20261025t060035z-10545` (executor kill). All three runners reported
+successful cleanup of their disposable resources. Acceptance used zero fault
+percentages; existing development volumes were retained. The earlier full chaos
+campaign was not repeated.
+
+This follow-up took approximately five minutes (05:56–06:02 UTC), in addition to
+the earlier sessions. The request and partial response record are in
+`ai/009-code-post-review.md` and `ai/009-code-post-review-response.md`; raw tool
+output and repeated progress messages are omitted under the existing disclosure.

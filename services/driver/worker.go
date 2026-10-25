@@ -235,7 +235,7 @@ func (w *worker) storeMeasurement(ctx context.Context, job *durableJob, x *lab.E
 	}
 	if len(job.Bytes) == 0 {
 		x.DataState = lab.Lost
-		x.DataError = "measurement_data_lost"
+		x.DataError = lab.MeasurementDataLost
 		return nil
 	}
 	if fmt.Sprintf("%x", sha256.Sum256(job.Bytes)) != x.Hash {
@@ -266,7 +266,7 @@ func ledgerConflict(previous []lab.Execution, current []instrument.Execution) bo
 				continue
 			}
 			found = true
-			if !old.StartedAt.Equal(stamp(physical.StartedAt)) || (old.Outcome != "running" && old.Outcome != physical.Outcome) {
+			if !old.StartedAt.Equal(stamp(physical.StartedAt)) || (old.Outcome != instrument.OutcomeRunning && old.Outcome != physical.Outcome) {
 				return true
 			}
 			if old.Hash != "" && (physical.DataSHA256 == nil || *physical.DataSHA256 != old.Hash) {

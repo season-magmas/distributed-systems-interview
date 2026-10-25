@@ -58,9 +58,9 @@ func (a *API) graphHandler() http.HandlerFunc {
 	}
 }
 func (a *API) graphSchema() (graphql.Schema, error) {
-	runStatus := enum("RunStatus", "pending", "running", "completed", "failed", "cancelled")
-	stepStatus := enum("StepStatus", "pending", "running", "completed", "failed", "cancelled")
-	outcome := enum("PhysicalOutcome", "running", "completed", "failed", "hung")
+	runStatus := enum("RunStatus", RunPending, RunRunning, RunCompleted, RunFailed, RunCancelled)
+	stepStatus := enum("StepStatus", StepPending, StepRunning, StepCompleted, StepFailed, StepCancelled)
+	outcome := enum("PhysicalOutcome", lab.OutcomeRunning, lab.OutcomeCompleted, lab.OutcomeFailed, lab.OutcomeHung)
 	data := enum("DataState", lab.NotApplicable, lab.Pending, lab.Stored, lab.Lost)
 	measurement := graphql.NewObject(graphql.ObjectConfig{Name: "Measurement", Fields: fields(map[string]graphql.Output{"state": nonNull(data), "sha256": graphql.String, "dataRef": graphql.String, "error": graphql.String})})
 	execution := graphql.NewObject(graphql.ObjectConfig{Name: "Execution", Fields: fields(map[string]graphql.Output{"id": nonNull(graphql.ID), "outcome": nonNull(outcome), "startedAt": nonNull(graphql.String), "finishedAt": graphql.String, "error": graphql.String, "retryable": graphql.Boolean, "measurement": measurement})})
@@ -72,7 +72,12 @@ func (a *API) graphSchema() (graphql.Schema, error) {
 	ids := graphql.FieldConfigArgument{"id": &graphql.ArgumentConfig{Type: nonNull(graphql.ID)}}
 	query := graphql.NewObject(graphql.ObjectConfig{Name: "Query", Fields: graphql.Fields{
 		"run": &graphql.Field{Type: run, Args: ids, Resolve: func(p graphql.ResolveParams) (any, error) {
-			records, err := a.executor.graphRecords(p.Context, p.Args["id"].(string))
+			id := p.Args["id"].(string)
+			// An empty ID must not select graphRecords' internal list-all mode.
+			if id == "" {
+				return nil, nil
+			}
+			records, err := a.executor.graphRecords(p.Context, id)
 			if errors.Is(err, ErrRunNotFound) {
 				return nil, nil
 			}
@@ -249,11 +254,11 @@ func (e *Executor) graphRecords(ctx context.Context, id string) ([]map[string]an
 		executions := []map[string]any{}
 		for _, x := range rep.Executions {
 			var measure any
-			if c.Device == "plate-reader-1" {
+			if c.Device == lab.PlateReaderID {
 				measure = map[string]any{"state": x.DataState, "sha256": text(x.Hash), "dataRef": text(x.DataRef), "error": text(x.DataError)}
 			}
 			var retry any
-			if x.Outcome == "failed" || x.Outcome == "hung" {
+			if x.Outcome == lab.OutcomeFailed || x.Outcome == lab.OutcomeHung {
 				retry = x.Retryable
 			}
 			executions = append(executions, map[string]any{"id": x.ID, "outcome": x.Outcome, "startedAt": textTime(&x.StartedAt), "finishedAt": textTime(x.FinishedAt), "error": text(x.Error), "retryable": retry, "measurement": measure})

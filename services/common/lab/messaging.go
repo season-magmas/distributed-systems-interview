@@ -34,7 +34,7 @@ func Provision(nc *nats.Conn) (nats.JetStreamContext, error) {
 			return nil, err
 		}
 	}
-	if err = consumer(js, ResultStream, "executor", ResultPrefix+"*"); err != nil {
+	if err = consumer(js, ResultStream, ExecutorConsumer, ResultPrefix+"*"); err != nil {
 		return nil, err
 	}
 	return js, nil

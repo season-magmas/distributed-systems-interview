@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "runs": [
+    "run-1d66d633bc5b7e27c9375aee",
+    "run-f5f3d6d06a652140483420d6"
+  ],
+  "checks": [
+    "create",
+    "start",
+    "poll to completion",
+    "measurement reference",
+    "expanded details preserved",
+    "read outage and recovery",
+    "390px layout",
+    "bookmark reload",
+    "polling after browser back",
+    "cancel pending",
+    "uncertain mutation never replayed",
+    "missing record",
+    "no JavaScript errors"
+  ]
+}
