@@ -1,0 +1,17 @@
+run: run-d42e8b3be00759fa948acdb3
+
+checks
+  PASS  run completed (4s)
+  PASS  all steps completed
+  PASS  dependency order respected
+  PASS  independent steps ran at the same time (2 overlapping pair(s))
+  PASS  no step ran more than once on its instrument
+  PASS  every completed step completed on its instrument
+  PASS  plate reader data stored and matches what the instrument measured
+
+for information
+  ....  total run time: 4s
+  ....  physical executions for this run: 7
+
+All 7 checks passed.
+Timeline: curl -s http://host.docker.internal:33102/runs/run-d42e8b3be00759fa948acdb3/timeline | jq

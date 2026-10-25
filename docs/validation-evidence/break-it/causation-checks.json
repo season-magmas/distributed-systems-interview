@@ -1,0 +1,86 @@
+[
+  {
+    "phase": "01-concurrent-wide",
+    "runs": {
+      "completed": 12
+    },
+    "executions": 56,
+    "physical_outcomes": {
+      "completed": 56
+    },
+    "seed_and_percentages_match_every_execution": true
+  },
+  {
+    "phase": "02-retry-exhaustion",
+    "runs": {
+      "failed": 8
+    },
+    "executions": 20,
+    "physical_outcomes": {
+      "failed": 11,
+      "hung": 9
+    },
+    "seed_and_percentages_match_every_execution": true
+  },
+  {
+    "phase": "03-overlapping-outages",
+    "runs": {
+      "completed": 8
+    },
+    "executions": 60,
+    "physical_outcomes": {
+      "completed": 38,
+      "hung": 12,
+      "failed": 10
+    },
+    "seed_and_percentages_match_every_execution": true
+  },
+  {
+    "phase": "04-cancel-restart",
+    "runs": {
+      "cancelled": 6,
+      "completed": 6
+    },
+    "executions": 30,
+    "physical_outcomes": {
+      "completed": 20,
+      "failed": 10
+    },
+    "seed_and_percentages_match_every_execution": true
+  },
+  {
+    "phase": "06-random-mixed",
+    "runs": {
+      "failed": 9
+    },
+    "executions": 45,
+    "physical_outcomes": {
+      "completed": 21,
+      "failed": 9,
+      "hung": 15
+    },
+    "seed_and_percentages_match_every_execution": true
+  },
+  {
+    "phase": "07-zero-duration",
+    "runs": {
+      "completed": 9
+    },
+    "executions": 42,
+    "physical_outcomes": {
+      "completed": 42
+    },
+    "seed_and_percentages_match_every_execution": true
+  },
+  {
+    "phase": "08-zero-fault-drain",
+    "runs": {
+      "completed": 6
+    },
+    "executions": 40,
+    "physical_outcomes": {
+      "completed": 40
+    },
+    "seed_and_percentages_match_every_execution": true
+  }
+]

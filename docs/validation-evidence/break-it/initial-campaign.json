@@ -1,0 +1,742 @@
+{
+  "started": 1792909295.2357469,
+  "project": "lab-test-20261025t062135z-12254",
+  "source": {
+    "project": "lab-test-20261025t062135z-12254",
+    "commit": "f99bb7722ef11cce4e24c46ae864be7654fff2a6",
+    "dirty": "",
+    "args": {
+      "host": "localhost",
+      "http_only": false,
+      "scenario": "break-campaign",
+      "suite": "routine",
+      "start_at": null
+    }
+  },
+  "phases": [
+    {
+      "name": "01-concurrent-wide",
+      "seed": "0",
+      "settings": {},
+      "duration": "300ms",
+      "hang": "700ms",
+      "start": 1792909322.1273446,
+      "statuses": {
+        "completed": 12
+      },
+      "runs": [
+        {
+          "run": "run-d16199b223a4ca0e494962af",
+          "workflow": "PCR Amplification",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-cb5c10eed5214546158e7e5b",
+          "workflow": "Triple Assay",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-969dfd26f97eda9159303fb2",
+          "workflow": "Wide Join",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-892f3eb17b2a7c6753311a39",
+          "workflow": "Reader Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-e62e75516ba5b7084ff7f5d9",
+          "workflow": "Incubator Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-9623a37917f1b93112ea249c",
+          "workflow": "Liquid Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-a67f32a9140521fd230afd79",
+          "workflow": "PCR Amplification",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-0929956a11e42dcaf66d5f39",
+          "workflow": "Triple Assay",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-2ea8580a0478c587f86fdd96",
+          "workflow": "Wide Join",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-1660ab8521085cc47c66a5b2",
+          "workflow": "Reader Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-b924ab513d677c6b39c52911",
+          "workflow": "Incubator Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-54e027cd0e32de85528d893b",
+          "workflow": "Liquid Train",
+          "status": "completed",
+          "physical_faults": []
+        }
+      ],
+      "result": "passed",
+      "seconds": 13.11
+    },
+    {
+      "name": "02-retry-exhaustion",
+      "seed": "101",
+      "settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "100"
+        },
+        "incubator-1": {
+          "HANG_PCT": "100"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "100"
+        }
+      },
+      "duration": "300ms",
+      "hang": "700ms",
+      "start": 1792909335.2420425,
+      "statuses": {
+        "failed": 8
+      },
+      "runs": [
+        {
+          "run": "run-6f002d6499d72e9c430bbeb3",
+          "workflow": "Reader Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            },
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            },
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 3,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            }
+          ]
+        },
+        {
+          "run": "run-3383c3f786171e8589a62166",
+          "workflow": "Reader Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            },
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            },
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 3,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            }
+          ]
+        },
+        {
+          "run": "run-46271dc211d0dd35efdbb504",
+          "workflow": "Reader Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            },
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            },
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 3,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            }
+          ]
+        },
+        {
+          "run": "run-9ccc510f1356bd741adf930b",
+          "workflow": "Incubator Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 3,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            }
+          ]
+        },
+        {
+          "run": "run-4dcbc137e0186085f8dc7819",
+          "workflow": "Incubator Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 3,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            }
+          ]
+        },
+        {
+          "run": "run-f72c2a0ea07a8aef1741dd06",
+          "workflow": "Incubator Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 3,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            }
+          ]
+        },
+        {
+          "run": "run-ba692aed5de0c6f1b482bb85",
+          "workflow": "Liquid Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "dispense_a",
+              "device": "liquid-handler-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during dispense_a"
+            }
+          ]
+        },
+        {
+          "run": "run-70d002c29aa2a3304215398d",
+          "workflow": "Liquid Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "dispense_a",
+              "device": "liquid-handler-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during dispense_a"
+            }
+          ]
+        }
+      ],
+      "result": "passed",
+      "seconds": 18.49
+    },
+    {
+      "name": "03-overlapping-outages",
+      "seed": "2026",
+      "settings": {
+        "incubator-1": {
+          "FAIL_PCT": "20",
+          "HANG_PCT": "30"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "20",
+          "HANG_PCT": "25"
+        }
+      },
+      "duration": "300ms",
+      "hang": "700ms",
+      "start": 1792909353.7374601,
+      "statuses": {
+        "completed": 8
+      },
+      "runs": [
+        {
+          "run": "run-37acf7832411527b3cedf9c0",
+          "workflow": "Wide Join",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "heat_b",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during heat_b"
+            },
+            {
+              "step": "scan_a",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "final_read",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during final_read"
+            }
+          ]
+        },
+        {
+          "run": "run-f96d6c534230bdcf46be802a",
+          "workflow": "Reader Train",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_c",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during read_c"
+            }
+          ]
+        },
+        {
+          "run": "run-1adb33176561d4aac435200a",
+          "workflow": "Triple Assay",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "incubate",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during incubate"
+            }
+          ]
+        },
+        {
+          "run": "run-39638c7087aabb946e64673e",
+          "workflow": "Incubator Train",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "heat_b",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during heat_b"
+            }
+          ]
+        },
+        {
+          "run": "run-63b82d70148c65317e476b57",
+          "workflow": "Wide Join",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "heat_b",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during heat_b"
+            },
+            {
+              "step": "scan_a",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "final_read",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during final_read"
+            }
+          ]
+        },
+        {
+          "run": "run-416021862b5b446f1cdb6a5a",
+          "workflow": "Reader Train",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_c",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during read_c"
+            }
+          ]
+        },
+        {
+          "run": "run-29f307d0ad718f6b3e511c50",
+          "workflow": "Triple Assay",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "incubate",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during incubate"
+            }
+          ]
+        },
+        {
+          "run": "run-421a0069080108f6327171a5",
+          "workflow": "Incubator Train",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "heat_a",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "heat_b",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during heat_b"
+            }
+          ]
+        }
+      ],
+      "result": "passed",
+      "seconds": 53.3
+    },
+    {
+      "name": "04-cancel-restart",
+      "seed": "314",
+      "settings": {
+        "incubator-1": {
+          "HANG_PCT": "40"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "30"
+        }
+      },
+      "duration": "300ms",
+      "hang": "700ms",
+      "start": 1792909407.0389128,
+      "statuses": {
+        "cancelled": 6,
+        "completed": 6
+      },
+      "runs": [
+        {
+          "run": "run-4e1d574f472e8e93f174fb64",
+          "workflow": "PCR Amplification",
+          "status": "cancelled",
+          "physical_faults": []
+        },
+        {
+          "run": "run-d648c16aea6887d08b574e1a",
+          "workflow": "Triple Assay",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "plate_read",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during plate_read"
+            },
+            {
+              "step": "plate_read",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "FAILED",
+              "error": "instrument error during plate_read"
+            },
+            {
+              "step": "report",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during report"
+            }
+          ]
+        },
+        {
+          "run": "run-3a945f825b859eae739cf2fa",
+          "workflow": "Wide Join",
+          "status": "cancelled",
+          "physical_faults": []
+        },
+        {
+          "run": "run-5270be5439b3791e9af5f1f6",
+          "workflow": "Reader Train",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during read_b"
+            }
+          ]
+        },
+        {
+          "run": "run-08c6e75c842636144dd94bcf",
+          "workflow": "Incubator Train",
+          "status": "cancelled",
+          "physical_faults": []
+        },
+        {
+          "run": "run-6f1e89db086c304807ec9a83",
+          "workflow": "Liquid Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-74938657b450387e69bd53ca",
+          "workflow": "PCR Amplification",
+          "status": "cancelled",
+          "physical_faults": []
+        },
+        {
+          "run": "run-2d02acc21caed6fe7f04ff9d",
+          "workflow": "Triple Assay",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "plate_read",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during plate_read"
+            },
+            {
+              "step": "plate_read",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "FAILED",
+              "error": "instrument error during plate_read"
+            },
+            {
+              "step": "report",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during report"
+            }
+          ]
+        },
+        {
+          "run": "run-1e02f13324eddcbdf4c91fbd",
+          "workflow": "Wide Join",
+          "status": "cancelled",
+          "physical_faults": []
+        },
+        {
+          "run": "run-7899947631723c26181376c3",
+          "workflow": "Reader Train",
+          "status": "completed",
+          "physical_faults": [
+            {
+              "step": "read_a",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during read_a"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during read_b"
+            }
+          ]
+        },
+        {
+          "run": "run-59f3a099c73e8f3712c236e7",
+          "workflow": "Incubator Train",
+          "status": "cancelled",
+          "physical_faults": []
+        },
+        {
+          "run": "run-8f499aaa22ba0b407c2d0745",
+          "workflow": "Liquid Train",
+          "status": "completed",
+          "physical_faults": []
+        }
+      ],
+      "result": "passed",
+      "seconds": 19.86
+    },
+    {
+      "name": "05-driver-kills",
+      "seed": "0",
+      "settings": {},
+      "duration": "1200ms",
+      "hang": "700ms",
+      "start": 1792909426.8967237,
+      "result": "failed",
+      "error": "URLError('http://host.docker.internal:20990/runs/run-07cabf342119d25f552d7a53: HTTP Error 500: Internal Server Error')",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/distributed-systems-interview/scripts/system_test.py\", line 54, in request\n    with urllib.request.urlopen(req, timeout=4) as response:\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.13/urllib/request.py\", line 189, in urlopen\n    return opener.open(url, data, timeout)\n           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.13/urllib/request.py\", line 495, in open\n    response = meth(req, response)\n  File \"/usr/lib/python3.13/urllib/request.py\", line 604, in http_response\n    response = self.parent.error(\n        'http', request, response, code, msg, hdrs)\n  File \"/usr/lib/python3.13/urllib/request.py\", line 533, in error\n    return self._call_chain(*args)\n           ~~~~~~~~~~~~~~~~^^^^^^^\n  File \"/usr/lib/python3.13/urllib/request.py\", line 466, in _call_chain\n    result = func(*args)\n  File \"/usr/lib/python3.13/urllib/request.py\", line 613, in http_error_default\n    raise HTTPError(req.full_url, code, msg, hdrs, fp)\nurllib.error.HTTPError: HTTP Error 500: Internal Server Error\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/tmp/lab-break-campaign.py\", line 111, in phase\n    views=settle_all(ids)\n  File \"/tmp/lab-break-campaign.py\", line 66, in settle_all\n    views=[suite.view(r) for r in ids]\n           ~~~~~~~~~~^^^\n  File \"/workspace/distributed-systems-interview/scripts/system_test.py\", line 210, in view\n    return request(self.executor + '/runs/' + run)\n  File \"/workspace/distributed-systems-interview/scripts/system_test.py\", line 59, in request\n    raise urllib.error.URLError(f'{url}: {error}') from error\nurllib.error.URLError: <urlopen error http://host.docker.internal:20990/runs/run-07cabf342119d25f552d7a53: HTTP Error 500: Internal Server Error>\n",
+      "seconds": 137.29
+    }
+  ],
+  "findings": []
+}

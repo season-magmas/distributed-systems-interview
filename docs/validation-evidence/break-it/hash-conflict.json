@@ -1,0 +1,78 @@
+{
+  "time": 1792909408.8168051,
+  "runs": {
+    "run-d5be4a9d964bea86172b1ba3": {
+      "id": "run-d5be4a9d964bea86172b1ba3",
+      "workflow_name": "Boundary Reader",
+      "status": "running",
+      "created_at": "2026-10-25T06:23:26.819376511Z",
+      "started_at": "2026-10-25T06:23:26.823450094Z",
+      "finished_at": null,
+      "steps": [
+        {
+          "name": "boundary_read",
+          "device_id": "plate-reader-1",
+          "depends_on": [],
+          "status": "running",
+          "started_at": "2026-10-25T06:23:27.199665152Z",
+          "finished_at": null,
+          "error": "measurement hash conflict",
+          "data_ref": null
+        },
+        {
+          "name": "after_read",
+          "device_id": "incubator-1",
+          "depends_on": [
+            "boundary_read"
+          ],
+          "status": "pending",
+          "started_at": null,
+          "finished_at": null,
+          "error": null,
+          "data_ref": null
+        }
+      ]
+    }
+  },
+  "instruments": {
+    "liquid-handler-1": {
+      "busy": false,
+      "current_job_id": "",
+      "device_id": "liquid-handler-1",
+      "executions": [],
+      "fail_pct": 0,
+      "failures_retryable": false,
+      "hang_pct": 0
+    },
+    "incubator-1": {
+      "busy": false,
+      "current_job_id": "",
+      "device_id": "incubator-1",
+      "executions": [],
+      "fail_pct": 0,
+      "failures_retryable": true,
+      "hang_pct": 0
+    },
+    "plate-reader-1": {
+      "busy": false,
+      "current_job_id": "",
+      "device_id": "plate-reader-1",
+      "executions": [
+        {
+          "execution_id": "1cb7e6d76891cbf703f20795fbf08e51",
+          "job_id": "job-7c0780671be9680cdce9ac7f",
+          "run_id": "run-d5be4a9d964bea86172b1ba3",
+          "step_name": "boundary_read",
+          "started_at": 1792909407.199665,
+          "outcome": "completed",
+          "finished_at": 1792909408.7038164,
+          "error": "",
+          "data_sha256": "dfeae2043f56fb1cf957fd4af442fbaaaf772e039eba833c4a1b039d15a77917"
+        }
+      ],
+      "fail_pct": 0,
+      "failures_retryable": true,
+      "hang_pct": 0
+    }
+  }
+}

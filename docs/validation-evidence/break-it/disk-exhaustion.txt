@@ -1,0 +1,25 @@
+postgres-1          | 2026-10-25T06:24:09.950124419Z 2026-10-25 06:24:09.949 UTC [194] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:14.973063505Z 2026-10-25 06:24:14.972 UTC [201] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:20.002376591Z 2026-10-25 06:24:20.002 UTC [208] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:20.455257466Z 2026-10-25 06:24:20.455 UTC [209] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:25.035436635Z 2026-10-25 06:24:25.034 UTC [216] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:30.051929512Z 2026-10-25 06:24:30.051 UTC [223] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:35.074617459Z 2026-10-25 06:24:35.074 UTC [230] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:35.457689667Z 2026-10-25 06:24:35.457 UTC [231] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:40.097695753Z 2026-10-25 06:24:40.097 UTC [238] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:45.139403089Z 2026-10-25 06:24:45.139 UTC [245] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:50.161487091Z 2026-10-25 06:24:50.161 UTC [252] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:50.477048299Z 2026-10-25 06:24:50.476 UTC [253] FATAL:  could not write init file
+plate-reader-1-1    | 2026-10-25T06:23:59.210880179Z 2026/10/25 06:23:59 driver plate-reader-1: Serve stopped with an error: spool capacity exhausted
+plate-reader-1-1    | 2026-10-25T06:24:29.492975929Z 2026/10/25 06:24:29 driver plate-reader-1: Serve stopped with an error: write /spool/.pending-2428994547: no space left on device
+liquid-handler-1-1  | 2026-10-25T06:24:18.558497757Z 2026/10/25 06:24:18 driver liquid-handler-1: Serve stopped with an error: write /spool/.pending-4170716504: no space left on device
+liquid-handler-1-1  | 2026-10-25T06:24:48.557579549Z 2026/10/25 06:24:48 driver liquid-handler-1: Serve stopped with an error: write /spool/.pending-3559954723: no space left on device
+incubator-1-1       | 2026-10-25T06:24:18.558975549Z 2026/10/25 06:24:18 driver incubator-1: Serve stopped with an error: write /spool/.pending-92499220: no space left on device
+incubator-1-1       | 2026-10-25T06:24:48.557861924Z 2026/10/25 06:24:48 driver incubator-1: Serve stopped with an error: write /spool/.pending-3925708985: no space left on device
+postgres-1          | 2026-10-25T06:24:22.237827467Z 2026-10-25 06:24:22.237 UTC [385] ERROR:  could not extend file "base/16385/2840": No space left on device
+postgres-1          | 2026-10-25T06:24:22.239309259Z 2026-10-25 06:24:22.239 UTC [385] ERROR:  could not extend file "base/16385/2840": No space left on device
+postgres-1          | 2026-10-25T06:24:37.214451376Z 2026-10-25 06:24:37.214 UTC [407] FATAL:  could not write init file
+postgres-1          | 2026-10-25T06:24:45.676345130Z 2026-10-25 06:24:45.676 UTC [341] PANIC:  could not write to file "pg_wal/xlogtemp.341": No space left on device
+postgres-1          | 2026-10-25T06:24:45.731522422Z 2026-10-25 06:24:45.731 UTC [422] FATAL:  could not write to file "base/16385/PG_VERSION": No space left on device
+plate-reader-1-1    | 2026-10-25T06:24:18.559018840Z 2026/10/25 06:24:18 driver plate-reader-1: Serve stopped with an error: write /spool/.pending-132068425: no space left on device
+plate-reader-1-1    | 2026-10-25T06:24:48.557746382Z 2026/10/25 06:24:48 driver plate-reader-1: Serve stopped with an error: write /spool/.pending-3703798161: no space left on device

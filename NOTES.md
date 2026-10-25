@@ -509,3 +509,34 @@ This follow-up took approximately five minutes (05:56–06:02 UTC), in addition 
 the earlier sessions. The request and partial response record are in
 `ai/009-code-post-review.md` and `ai/009-code-post-review-response.md`; raw tool
 output and repeated progress messages are omitted under the existing disclosure.
+
+## 12. Ten-minute adversarial campaign (2026-10-25)
+
+The exercise in `ai/010-break-it.md` ran for approximately ten minutes,
+06:20–06:30 UTC, against application revision `30fb0fb` (checkout `c278e9e`).
+Seven verified concurrent-workflow phases covered 64 runs and 293 executions:
+41 completed, 17 deliberately failed, six cancelled. Independent recomputation
+of every instrument fault roll matched the observed outcomes. Short hangs were
+700ms, with additional zero-duration/1ms boundary settings. Separate object
+corruption/restart/repair and final zero-fault HTTP acceptance also passed.
+Those two checks add two completed runs and nine executions beyond the campaign
+totals: 66 verified runs and 302 executions overall. The incomplete disk-exhaustion
+attempts are excluded from these totals.
+
+An attempted full-spool recovery and simultaneous driver-kill phase were
+confounded by shared Docker disk exhaustion, including a Postgres WAL-write
+panic. They are recorded as unsuccessful/inconclusive rather than hidden or
+counted as passes. After removing test-owned resources and freeing disposable Go
+build cache, the remaining random-chaos, zero-duration, healthy-contention and
+acceptance cases passed. The executor's health check remained healthy during its
+database outage; it provides liveness rather than dependency readiness.
+
+Exact fault percentages, seeds, workflow shapes, outcomes, limitations and
+cleanup are recorded in [`ai/010-break-it-response.md`](ai/010-break-it-response.md).
+Portable results, fixture definitions, error excerpts and scratch runners are
+under [`docs/validation-evidence/break-it/`](docs/validation-evidence/break-it/).
+No application behavior or development workflow definitions were changed. All
+owned test infrastructure was removed; existing development volumes were kept.
+Raw logs and repeated AI progress updates are omitted under the existing partial
+conversation disclosure. No new application bug was established in the verified
+phases; successful finite testing is not proof that there are none.

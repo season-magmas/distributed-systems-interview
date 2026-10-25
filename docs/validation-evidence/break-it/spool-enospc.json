@@ -1,0 +1,122 @@
+{
+  "time": 1792909494.7354443,
+  "runs": {
+    "run-d5be4a9d964bea86172b1ba3": {
+      "id": "run-d5be4a9d964bea86172b1ba3",
+      "workflow_name": "Boundary Reader",
+      "status": "completed",
+      "created_at": "2026-10-25T06:23:26.819376511Z",
+      "started_at": "2026-10-25T06:23:26.823450094Z",
+      "finished_at": "2026-10-25T06:23:58.915808887Z",
+      "steps": [
+        {
+          "name": "boundary_read",
+          "device_id": "plate-reader-1",
+          "depends_on": [],
+          "status": "completed",
+          "started_at": "2026-10-25T06:23:27.199665152Z",
+          "finished_at": "2026-10-25T06:23:28.703816448Z",
+          "error": null,
+          "data_ref": "s3://lab-data/runs/run-d5be4a9d964bea86172b1ba3/jobs/job-7c0780671be9680cdce9ac7f/executions/1cb7e6d76891cbf703f20795fbf08e51/measurement.csv"
+        },
+        {
+          "name": "after_read",
+          "device_id": "incubator-1",
+          "depends_on": [
+            "boundary_read"
+          ],
+          "status": "completed",
+          "started_at": "2026-10-25T06:23:57.402846976Z",
+          "finished_at": "2026-10-25T06:23:58.90404096Z",
+          "error": null,
+          "data_ref": null
+        }
+      ]
+    },
+    "run-219e9668aea3079e61d8e16c": {
+      "id": "run-219e9668aea3079e61d8e16c",
+      "workflow_name": "Boundary Reader",
+      "status": "running",
+      "created_at": "2026-10-25T06:23:59.013306804Z",
+      "started_at": "2026-10-25T06:23:59.014878262Z",
+      "finished_at": null,
+      "steps": [
+        {
+          "name": "boundary_read",
+          "device_id": "plate-reader-1",
+          "depends_on": [],
+          "status": "running",
+          "started_at": null,
+          "finished_at": null,
+          "error": "recovery unresolved: deadline exceeded",
+          "data_ref": null
+        },
+        {
+          "name": "after_read",
+          "device_id": "incubator-1",
+          "depends_on": [
+            "boundary_read"
+          ],
+          "status": "pending",
+          "started_at": null,
+          "finished_at": null,
+          "error": null,
+          "data_ref": null
+        }
+      ]
+    }
+  },
+  "instruments": {
+    "liquid-handler-1": {
+      "busy": false,
+      "current_job_id": "",
+      "device_id": "liquid-handler-1",
+      "executions": [],
+      "fail_pct": 0,
+      "failures_retryable": false,
+      "hang_pct": 0
+    },
+    "incubator-1": {
+      "busy": false,
+      "current_job_id": "",
+      "device_id": "incubator-1",
+      "executions": [
+        {
+          "execution_id": "2a72544a5b44b8ce9ad2caf49f465f79",
+          "job_id": "job-7cdb86cbe46665d1ce979b66",
+          "run_id": "run-d5be4a9d964bea86172b1ba3",
+          "step_name": "after_read",
+          "started_at": 1792909437.402847,
+          "outcome": "completed",
+          "finished_at": 1792909438.904041,
+          "error": "",
+          "data_sha256": null
+        }
+      ],
+      "fail_pct": 0,
+      "failures_retryable": true,
+      "hang_pct": 0
+    },
+    "plate-reader-1": {
+      "busy": false,
+      "current_job_id": "",
+      "device_id": "plate-reader-1",
+      "executions": [
+        {
+          "execution_id": "1cb7e6d76891cbf703f20795fbf08e51",
+          "job_id": "job-7c0780671be9680cdce9ac7f",
+          "run_id": "run-d5be4a9d964bea86172b1ba3",
+          "step_name": "boundary_read",
+          "started_at": 1792909407.199665,
+          "outcome": "completed",
+          "finished_at": 1792909408.7038164,
+          "error": "",
+          "data_sha256": "dfeae2043f56fb1cf957fd4af442fbaaaf772e039eba833c4a1b039d15a77917"
+        }
+      ],
+      "fail_pct": 0,
+      "failures_retryable": true,
+      "hang_pct": 0
+    }
+  }
+}

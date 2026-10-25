@@ -1,0 +1,402 @@
+{
+  "started": 1792909610.1356928,
+  "project": "lab-test-20261025t062650z-14404",
+  "source": {
+    "project": "lab-test-20261025t062650z-14404",
+    "commit": "f99bb7722ef11cce4e24c46ae864be7654fff2a6",
+    "dirty": "",
+    "args": {
+      "host": "localhost",
+      "http_only": false,
+      "scenario": "break-campaign",
+      "suite": "routine",
+      "start_at": null
+    }
+  },
+  "phases": [
+    {
+      "name": "06-random-mixed",
+      "seed": "47",
+      "settings": {
+        "liquid-handler-1": {
+          "FAIL_PCT": "10",
+          "HANG_PCT": "10"
+        },
+        "incubator-1": {
+          "FAIL_PCT": "25",
+          "HANG_PCT": "25"
+        },
+        "plate-reader-1": {
+          "FAIL_PCT": "20",
+          "HANG_PCT": "25"
+        }
+      },
+      "duration": "300ms",
+      "hang": "700ms",
+      "start": 1792909636.3728006,
+      "statuses": {
+        "failed": 9
+      },
+      "runs": [
+        {
+          "run": "run-f742e2619e94c64e9a7516e8",
+          "workflow": "Wide Join",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "scan_b",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "scan_b",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "scan_b",
+              "device": "plate-reader-1",
+              "attempt": 3,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            }
+          ]
+        },
+        {
+          "run": "run-e2f1fdfb27945e1248ce61b9",
+          "workflow": "Reader Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 3,
+              "outcome": "FAILED",
+              "error": "instrument error during read_b"
+            }
+          ]
+        },
+        {
+          "run": "run-97e58acbbe03a55e0852625e",
+          "workflow": "Triple Assay",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "pipette",
+              "device": "liquid-handler-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during pipette"
+            },
+            {
+              "step": "incubate",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during incubate"
+            }
+          ]
+        },
+        {
+          "run": "run-4fba8dc943aa8ad9f9a53524",
+          "workflow": "Wide Join",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "scan_b",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "scan_b",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "scan_b",
+              "device": "plate-reader-1",
+              "attempt": 3,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            }
+          ]
+        },
+        {
+          "run": "run-0e446ea5349df59db35c1cf1",
+          "workflow": "Reader Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 3,
+              "outcome": "FAILED",
+              "error": "instrument error during read_b"
+            }
+          ]
+        },
+        {
+          "run": "run-f7cb309d14e05579a8e8c042",
+          "workflow": "Triple Assay",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "pipette",
+              "device": "liquid-handler-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during pipette"
+            },
+            {
+              "step": "incubate",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during incubate"
+            }
+          ]
+        },
+        {
+          "run": "run-87253a0ae368b13c6c6c36a8",
+          "workflow": "Wide Join",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "scan_b",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "scan_b",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "scan_b",
+              "device": "plate-reader-1",
+              "attempt": 3,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            }
+          ]
+        },
+        {
+          "run": "run-26496837b89f10b3e50c01f4",
+          "workflow": "Reader Train",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 1,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 2,
+              "outcome": "HUNG",
+              "error": "instrument hung"
+            },
+            {
+              "step": "read_b",
+              "device": "plate-reader-1",
+              "attempt": 3,
+              "outcome": "FAILED",
+              "error": "instrument error during read_b"
+            }
+          ]
+        },
+        {
+          "run": "run-25a5db0a9b4bd4d36ac43bb4",
+          "workflow": "Triple Assay",
+          "status": "failed",
+          "physical_faults": [
+            {
+              "step": "pipette",
+              "device": "liquid-handler-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during pipette"
+            },
+            {
+              "step": "incubate",
+              "device": "incubator-1",
+              "attempt": 1,
+              "outcome": "FAILED",
+              "error": "instrument error during incubate"
+            }
+          ]
+        }
+      ],
+      "result": "passed",
+      "seconds": 91.09
+    },
+    {
+      "name": "07-zero-duration",
+      "seed": "0",
+      "settings": {},
+      "duration": "0s",
+      "hang": "1ms",
+      "start": 1792909727.4641614,
+      "statuses": {
+        "completed": 9
+      },
+      "runs": [
+        {
+          "run": "run-b53b0ab9e19809873d8334e0",
+          "workflow": "Reader Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-1addbdc4ae7e8e1c67c0429e",
+          "workflow": "Incubator Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-69fb3c3b2cdff798179f961b",
+          "workflow": "Wide Join",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-b941a0aca9e97abb4d2728fc",
+          "workflow": "Reader Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-35d225f1d1424930191e1666",
+          "workflow": "Incubator Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-462081dac6aa416bf38b971a",
+          "workflow": "Wide Join",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-b5c9636be55290304f7d18b5",
+          "workflow": "Reader Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-7ce9378f10422edfe74fe47e",
+          "workflow": "Incubator Train",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-8195165feb12c12a078c3b30",
+          "workflow": "Wide Join",
+          "status": "completed",
+          "physical_faults": []
+        }
+      ],
+      "result": "passed",
+      "seconds": 5.89
+    },
+    {
+      "name": "08-zero-fault-drain",
+      "seed": "0",
+      "settings": {},
+      "duration": "300ms",
+      "hang": "700ms",
+      "start": 1792909733.3525226,
+      "statuses": {
+        "completed": 6
+      },
+      "runs": [
+        {
+          "run": "run-bf70d4ace0cdf496b2c8d7a1",
+          "workflow": "PCR Amplification",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-462d1a79bbcffafa787dc926",
+          "workflow": "Triple Assay",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-e3a5e04ae7051ed82ff37550",
+          "workflow": "Wide Join",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-c28856b89d7d91f8197fcecb",
+          "workflow": "PCR Amplification",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-e9713acf1bb925b7dfd46d06",
+          "workflow": "Triple Assay",
+          "status": "completed",
+          "physical_faults": []
+        },
+        {
+          "run": "run-aafb2f2d7254a275e78d9041",
+          "workflow": "Wide Join",
+          "status": "completed",
+          "physical_faults": []
+        }
+      ],
+      "result": "passed",
+      "seconds": 25.53
+    }
+  ],
+  "findings": [],
+  "acceptance": "passed",
+  "cleanup_errors": [],
+  "finished": 1792909765.9730783,
+  "seconds": 155.84
+}

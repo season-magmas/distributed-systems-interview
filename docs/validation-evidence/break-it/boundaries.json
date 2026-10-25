@@ -1,0 +1,28 @@
+{
+  "project": "lab-test-20261025t062303z-13091",
+  "source": {
+    "project": "lab-test-20261025t062303z-13091",
+    "commit": "f99bb7722ef11cce4e24c46ae864be7654fff2a6",
+    "dirty": "",
+    "args": {
+      "host": "localhost",
+      "http_only": false,
+      "scenario": "boundaries",
+      "suite": "routine",
+      "start_at": null
+    }
+  },
+  "checks": [
+    {
+      "name": "object-conflict-repair",
+      "result": "passed",
+      "run": "run-d5be4a9d964bea86172b1ba3",
+      "observed": "hash conflict paused dependent; reader restart and exact-byte repair completed without rereading"
+    }
+  ],
+  "started": 1792909383.5264935,
+  "failure": "AssertionError('timed out waiting for terminal run run-219e9668aea3079e61d8e16c: None')",
+  "traceback": "Traceback (most recent call last):\n  File \"/tmp/lab-break-boundaries.py\", line 53, in <module>\n    s.finish(run,timeout=55);s.assert_records()\n    ~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"/workspace/distributed-systems-interview/scripts/system_test.py\", line 228, in finish\n    view = until(lambda: (lambda v: v if v['status'] in TERMINAL else None)(self.view(run)), timeout, 'terminal run ' + run)\n  File \"/workspace/distributed-systems-interview/scripts/system_test.py\", line 74, in until\n    raise AssertionError(f'timed out waiting for {label}: {last}')\nAssertionError: timed out waiting for terminal run run-219e9668aea3079e61d8e16c: None\n",
+  "cleanup_errors": [],
+  "seconds": 113.59
+}
